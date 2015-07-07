@@ -2,9 +2,7 @@
 
 namespace vigir_pluginlib
 {
-using namespace vigir_generic_params;
-
-Plugin::Plugin(const std::string& name, const std::string& type_id, const ParameterSet& params)
+Plugin::Plugin(const std::string& name, const std::string& type_id, const vigir_generic_params::ParameterSet& params)
   : name(name)
   , type_id(type_id)
 {
@@ -12,7 +10,7 @@ Plugin::Plugin(const std::string& name, const std::string& type_id, const Parame
 }
 
 Plugin::Plugin(const std::string& name, const std::string& type_id)
-  : Plugin(name, type_id, ParameterManager::getActive())
+  : Plugin(name, type_id, vigir_generic_params::ParameterManager::getActive())
 {
 }
 
@@ -20,11 +18,11 @@ Plugin::~Plugin()
 {
 }
 
-void Plugin::loadParams(const ParameterSet& /*params*/)
+void Plugin::loadParams(const vigir_generic_params::ParameterSet& /*params*/)
 {
 }
 
-bool Plugin::initialize(ros::NodeHandle& /*nh*/, const ParameterSet& params)
+bool Plugin::initialize(ros::NodeHandle& /*nh*/, const vigir_generic_params::ParameterSet& params)
 {
   loadParams(params);
   return true;

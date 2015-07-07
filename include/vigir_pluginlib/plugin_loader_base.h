@@ -1,5 +1,6 @@
 //=================================================================================================
 // Copyright (c) 2015, Alexander Stumpf, TU Darmstadt
+// Based on pluginlib (http://wiki.ros.org/pluginlib)
 // All rights reserved.
 
 // Redistribution and use in source and binary forms, with or without
@@ -26,46 +27,31 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //=================================================================================================
 
-#ifndef VIGIR_PLUGINLIB_PLUGIN_H__
-#define VIGIR_PLUGINLIB_PLUGIN_H__
+#ifndef VIGIR_PLUGINLIB_PLUGIN_LOADER_BASE_H__
+#define VIGIR_PLUGINLIB_PLUGIN_LOADER_BASE_H__
 
 #include <ros/ros.h>
 
-#include <vigir_generic_params/parameter_manager.h>
+#include <pluginlib/class_loader_base.h>
+
+#include <vigir_pluginlib/plugin.h>
 
 
 
 namespace vigir_pluginlib
 {
-class Plugin
+class PluginLoaderBase
+  : public virtual pluginlib::ClassLoaderBase
 {
 public:
-  Plugin(const std::string& name, const std::string& type_id, const vigir_generic_params::ParameterSet& params);
-  Plugin(const std::string& name, const std::string& type_id);
-  virtual ~Plugin();
-
-  virtual void loadParams(const vigir_generic_params::ParameterSet& params);
-
-  virtual bool initialize(ros::NodeHandle& nh, const vigir_generic_params::ParameterSet& params);
-
-  const std::string& getName() const;
-  const std::string& getTypeId() const;
-
   /**
-   * Unique plugins (default: true) can only exist once per type_id.
-   * The plugin manager will replace any plugin of same type_id with the
-   * new one. If a plugin can live in coexistence with others plugins
-   * with the the same type_id, override this method to return false.
-   **/
-  virtual bool isUnique() const;
-
-  // typedefs
-  typedef boost::shared_ptr<Plugin> Ptr;
-  typedef boost::shared_ptr<const Plugin> ConstPtr;
-
-private:
-  const std::string type_id;
-  const std::string name;
+   * @brief  Creates an instance of a plugin which is derived from vigir_pluginlib::Plugin base class (which implicitly calls loadLibraryForClass() to increment the library counter). Deleting the instance and calling unloadLibraryForClass() is automatically handled by the shared pointer.
+   * @param  lookup_name The name of the class to load
+   * @exception pluginlib::LibraryLoadException Thrown when the library associated with the class cannot be loaded
+   * @exception pluginlib::CreateClassException Thrown when the class cannot be instantiated
+   * @return An instance of the class
+   */
+  virtual Plugin::Ptr createPluginInstance(const std::string& lookup_name) = 0;
 };
 }
 

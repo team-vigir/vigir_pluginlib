@@ -33,10 +33,9 @@
 
 #include <boost/noncopyable.hpp>
 
-#include <pluginlib/class_loader.h>
-
 #include <vigir_generic_params/parameter_manager.h>
 
+#include <vigir_pluginlib/plugin_loader.h>
 #include <vigir_pluginlib/plugin.h>
 
 
@@ -49,7 +48,7 @@ class PluginManager
   : boost::noncopyable
 {
 public:
-  typedef std::vector<pluginlib::ClassLoaderBase*> ClassLoaderVector;
+  typedef std::vector<PluginLoaderBase*> PluginLoaderVector;
 
   ~PluginManager();
 
@@ -67,13 +66,13 @@ public:
    * @param plugin_xml_paths The list of paths of plugin.xml files, defaults to be crawled via ros::package::getPlugins()
    * @exception pluginlib::LibraryLoadException Thrown if package manifest cannot be found
    */
-  template<typename PluginBaseClass>
-  static bool addPluginClassLoader(std::string base_class, std::string package = "vigir_footstep_planner", std::string attrib_name = std::string("plugin"), std::vector<std::string> plugin_xml_paths = std::vector<std::string>())
+  template<class PluginBaseClass>
+  static bool addPluginClassLoader(const std::string& package, const std::string& base_class, const std::string& attrib_name = std::string("plugin"), const std::vector<std::string>& plugin_xml_paths = std::vector<std::string>())
   {
     // check for duplicate
-    for (ClassLoaderVector::const_iterator itr = Instance()->class_loader.begin(); itr != Instance()->class_loader.end(); itr++)
+    for (PluginLoaderBase* loader : Instance()->class_loader)
     {
-      if ((*itr)->getBaseClassType() == base_class)
+      if (loader->getBaseClassType() == base_class)
       {
         ROS_WARN("[PluginManager] The ClassLoader for plugins of type '%s' has been already added!", base_class.c_str());
         return false;
@@ -82,68 +81,36 @@ public:
 
     try
     {
-      Instance()->class_loader.push_back(new pluginlib::ClassLoader<PluginBaseClass>(package, base_class, attrib_name, plugin_xml_paths));
+      PluginLoader<PluginBaseClass>* loader = new PluginLoader<PluginBaseClass>(package, base_class, attrib_name, plugin_xml_paths);
+      Instance()->class_loader.push_back(loader);
       ROS_INFO("[PluginManager] Added ClassLoader for plugins of type '%s'.", base_class.c_str());
+      ROS_DEBUG("  Declared classes:");
+      for (const std::string s : loader->getDeclaredClasses())
+        ROS_DEBUG("    %s", s.c_str());
+      ROS_DEBUG("  Registered libraries:");
+      for (const std::string s : loader->getRegisteredLibraries())
+        ROS_DEBUG("    %s", s.c_str());
     }
     catch (pluginlib::LibraryLoadException& e)
     {
-      ROS_ERROR("[PluginManager] The ClassLoader for plugin '%s' of package '%s' failed to load for some reason. Error: %s", base_class.c_str(), package.c_str(), e.what());
+      ROS_ERROR("[PluginManager] The ClassLoader for plugin '%s' of package '%s' failed to load for some reason. Error:\n%s", base_class.c_str(), package.c_str(), e.what());
       return false;
     }
 
     return true;
   }
-
   /**
    * @brief Returns reference to a list of added ClassLoader
    * @return Const reference to ClassLoader
    */
-  static const ClassLoaderVector& getPluginClassLoader();
+  static const PluginLoaderVector& getPluginClassLoader();
 
   /**
    * @brief Instantiation of plugin using ClassLoader
    * @param type The name of the class to load
    * @return false, if instantiation has failed, otherwise true
    */
-  template<typename PluginBaseClass>
-  static bool addPlugin(const std::string type)
-  {
-    boost::shared_ptr<Plugin> p;
-
-    try
-    {
-      std::string base_class_type;
-
-      // search for appropriate ClassLoader
-      for (ClassLoaderVector::iterator itr = Instance()->class_loader.begin(); itr != Instance()->class_loader.end(); itr++)
-      {
-        pluginlib::ClassLoader<PluginBaseClass>* loader = dynamic_cast<pluginlib::ClassLoader<PluginBaseClass>*>(*itr);
-        if (loader != nullptr && loader->isClassAvailable(type))
-        {
-          if (!p)
-          {
-            base_class_type = loader->getBaseClassType().c_str();
-            p = loader->createInstance(type);
-          }
-          else
-            ROS_WARN("[PluginManager] Duplicate source for plugin '%s' found in ClassLoader '%s'!\nPlugin was already instanciated from ClassLoader '%s'", type.c_str(), loader->getBaseClassType().c_str(), base_class_type.c_str());
-        }
-      }
-      if (!p)
-      {
-        ROS_ERROR("[PluginManager] Plugin of type '%s' is unknown! Check if ClassLoader has been initialized!", type.c_str());
-        return false;
-      }
-    }
-    catch (pluginlib::PluginlibException& e)
-    {
-      ROS_ERROR("[PluginManager] Plugin of type '%s' failed to load for some reason. Error: %s", type.c_str(), e.what());
-      return false;
-    }
-
-    PluginManager::addPlugin(p);
-    return true;
-  }
+  static bool addPlugin(const std::string& type, const std::string& base_class = std::string());
 
   template<typename PluginDerivedClass>
   static void addPlugin()
@@ -273,7 +240,7 @@ protected:
   ros::NodeHandle nh;
 
   // class loader
-  ClassLoaderVector class_loader;
+  PluginLoaderVector class_loader;
 
   // instantiated plugins
   std::map<std::string, Plugin::Ptr> plugins_by_name;

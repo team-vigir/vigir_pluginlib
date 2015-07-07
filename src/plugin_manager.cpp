@@ -1,4 +1,5 @@
 #include <vigir_pluginlib/plugin_manager.h>
+#include <ros/console.h>
 
 namespace vigir_pluginlib
 {
@@ -15,8 +16,8 @@ PluginManager::~PluginManager()
   // prevents warning when ClassLoaders get destroyed
   plugins_by_name.clear();
 
-  for (ClassLoaderVector::iterator itr = class_loader.begin(); itr != class_loader.end(); itr++)
-    delete *itr;
+  for (PluginLoaderBase* loader : Instance()->class_loader)
+    delete loader;
   class_loader.clear();
 }
 
@@ -46,9 +47,47 @@ void PluginManager::initTopics(ros::NodeHandle& nh)
 //  Instance()->get_parameter_set_names_as = SimpleActionServer<msgs::GetParameterSetNamesAction>::create(nh, "params/get_parameter_set_names", true, boost::bind(&ParameterManager::getParameterSetNamesAction, Instance().get(), boost::ref(Instance()->get_parameter_set_names_as)));
 }
 
-const PluginManager::ClassLoaderVector& PluginManager::getPluginClassLoader()
+const PluginManager::PluginLoaderVector& PluginManager::getPluginClassLoader()
 {
   return Instance()->class_loader;
+}
+
+bool PluginManager::addPlugin(const std::string& type, const std::string& base_class)
+{
+  boost::shared_ptr<Plugin> p;
+
+  try
+  {
+    std::string _base_class = base_class;
+
+    // search for appropriate ClassLoader
+    for (PluginLoaderBase* loader : Instance()->class_loader)
+    {
+      if (loader->isClassAvailable(type) && (base_class.empty() || base_class == loader->getBaseClassType()))
+      {
+        if (!p)
+        {
+          _base_class = loader->getBaseClassType().c_str();
+          p = loader->createPluginInstance(type);
+        }
+        else
+          ROS_WARN("[PluginManager] Duplicate source for plugin '%s' found in ClassLoader '%s'!\nPlugin was already instanciated from ClassLoader '%s'", type.c_str(), loader->getBaseClassType().c_str(), _base_class.c_str());
+      }
+    }
+    if (!p)
+    {
+      ROS_ERROR("[PluginManager] Plugin of type '%s' is unknown! Check if ClassLoader has been initialized!", type.c_str());
+      return false;
+    }
+  }
+  catch (pluginlib::PluginlibException& e)
+  {
+    ROS_ERROR("[PluginManager] Plugin of type '%s' failed to load for some reason. Error: %s", type.c_str(), e.what());
+    return false;
+  }
+
+  PluginManager::addPlugin(p);
+  return true;
 }
 
 void PluginManager::addPlugin(Plugin::Ptr plugin)
