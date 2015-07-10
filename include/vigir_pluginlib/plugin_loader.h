@@ -57,6 +57,7 @@ public:
    */
   PluginLoader(const std::string& package, const std::string& base_class, const std::string& attrib_name = std::string("plugin"), const std::vector<std::string>& plugin_xml_paths = std::vector<std::string>())
     : pluginlib::ClassLoader<T>(package, base_class, attrib_name, plugin_xml_paths)
+    , PluginLoaderBase(package, base_class, attrib_name, plugin_xml_paths)
   {
   }
 

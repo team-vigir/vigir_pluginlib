@@ -31,20 +31,25 @@ PluginManager::Ptr& PluginManager::Instance()
 void PluginManager::initTopics(ros::NodeHandle& nh)
 {
   Instance()->nh = nh;
-//  // subscribe topics
-//  Instance()->update_parameter_set_sub = nh.subscribe("params/update_parameter_set", 1, &ParameterManager::updateParameterSet, Instance().get());
 
-//  // start own services
-//  Instance()->set_parameter_set_srv = nh.advertiseService("params/set_parameter_set", &ParameterManager::setParameterSetService, Instance().get());
-//  Instance()->get_parameter_set_srv = nh.advertiseService("params/get_parameter_set", &ParameterManager::getParameterSetService, Instance().get());
-//  Instance()->get_all_parameter_sets_srv = nh.advertiseService("params/get_all_parameter_sets", &ParameterManager::getAllParameterSetsService, Instance().get());
-//  Instance()->get_parameter_set_names_srv = nh.advertiseService("params/get_parameter_set_names", &ParameterManager::getParameterSetNamesService, Instance().get());
+  // subscribe topics
+  Instance()->add_plugin_sub = nh.subscribe("plugin_manager/add_plugin", 1, &PluginManager::addPlugin, Instance().get());
+  Instance()->remove_plugin_sub = nh.subscribe("plugin_manager/remove_plugin", 1, &PluginManager::removePlugin, Instance().get());
 
-//  // init action servers
-//  Instance()->set_parameter_set_as = SimpleActionServer<msgs::SetParameterSetAction>::create(nh, "params/set_parameter_set", true, boost::bind(&ParameterManager::setParameterSetAction, Instance().get(), boost::ref(Instance()->set_parameter_set_as)));
-//  Instance()->get_parameter_set_as = SimpleActionServer<msgs::GetParameterSetAction>::create(nh, "params/get_parameter_set", true, boost::bind(&ParameterManager::getParameterSetAction, Instance().get(), boost::ref(Instance()->get_parameter_set_as)));
-//  Instance()->get_all_parameter_sets_as = SimpleActionServer<msgs::GetAllParameterSetsAction>::create(nh, "params/get_all_parameter_sets", true, boost::bind(&ParameterManager::getAllParameterSetsAction, Instance().get(), boost::ref(Instance()->get_all_parameter_sets_as)));
-//  Instance()->get_parameter_set_names_as = SimpleActionServer<msgs::GetParameterSetNamesAction>::create(nh, "params/get_parameter_set_names", true, boost::bind(&ParameterManager::getParameterSetNamesAction, Instance().get(), boost::ref(Instance()->get_parameter_set_names_as)));
+  // start own services
+  Instance()->get_plugin_descriptions_srv = nh.advertiseService("plugin_manager/get_plugin_descriptions", &PluginManager::getPluginDescriptionsService, Instance().get());
+  Instance()->add_plugin_srv = nh.advertiseService("plugin_manager/add_plugin", &PluginManager::addPluginService, Instance().get());
+  Instance()->remove_plugin_srv = nh.advertiseService("plugin_manager/remove_plugin", &PluginManager::removePluginService, Instance().get());
+
+  // init action servers
+  Instance()->get_plugin_descriptions_as.reset(new GetPluginDescriptionsActionServer(nh, "plugin_manager/get_plugin_descriptions", boost::bind(&PluginManager::getPluginDescriptionsAction, Instance().get(), _1), false));
+  Instance()->add_plugin_as.reset(new PluginManagementActionServer(nh, "plugin_manager/add_plugin", boost::bind(&PluginManager::addPluginAction, Instance().get(), _1), false));
+  Instance()->remove_plugin_as.reset(new PluginManagementActionServer(nh, "plugin_manager/remove_plugin", boost::bind(&PluginManager::removePluginAction, Instance().get(), _1), false));
+
+  // start action servers
+  Instance()->get_plugin_descriptions_as->start();
+  Instance()->add_plugin_as->start();
+  Instance()->remove_plugin_as->start();
 }
 
 const PluginManager::PluginLoaderVector& PluginManager::getPluginClassLoader()
@@ -52,7 +57,7 @@ const PluginManager::PluginLoaderVector& PluginManager::getPluginClassLoader()
   return Instance()->class_loader;
 }
 
-bool PluginManager::addPlugin(const std::string& type, const std::string& base_class)
+bool PluginManager::addPlugin(const std::string& type_class, const std::string& base_class)
 {
   boost::shared_ptr<Plugin> p;
 
@@ -63,26 +68,26 @@ bool PluginManager::addPlugin(const std::string& type, const std::string& base_c
     // search for appropriate ClassLoader
     for (PluginLoaderBase* loader : Instance()->class_loader)
     {
-      if (loader->isClassAvailable(type) && (base_class.empty() || base_class == loader->getBaseClassType()))
+      if (loader->isClassAvailable(type_class) && (base_class.empty() || base_class == loader->getBaseClassType()))
       {
         if (!p)
         {
           _base_class = loader->getBaseClassType().c_str();
-          p = loader->createPluginInstance(type);
+          p = loader->createPluginInstance(type_class);
         }
         else
-          ROS_WARN("[PluginManager] Duplicate source for plugin '%s' found in ClassLoader '%s'!\nPlugin was already instanciated from ClassLoader '%s'", type.c_str(), loader->getBaseClassType().c_str(), _base_class.c_str());
+          ROS_WARN("[PluginManager] Duplicate source for plugin '%s' found in ClassLoader '%s'!\nPlugin was already instanciated from ClassLoader '%s'", type_class.c_str(), loader->getBaseClassType().c_str(), _base_class.c_str());
       }
     }
     if (!p)
     {
-      ROS_ERROR("[PluginManager] Plugin of type '%s' is unknown! Check if ClassLoader has been initialized!", type.c_str());
+      ROS_ERROR("[PluginManager] Plugin of type_class '%s' is unknown! Check if ClassLoader has been initialized!", type_class.c_str());
       return false;
     }
   }
   catch (pluginlib::PluginlibException& e)
   {
-    ROS_ERROR("[PluginManager] Plugin of type '%s' failed to load for some reason. Error: %s", type.c_str(), e.what());
+    ROS_ERROR("[PluginManager] Plugin of type_class '%s' failed to load for some reason. Error: %s", type_class.c_str(), e.what());
     return false;
   }
 
@@ -161,6 +166,36 @@ bool PluginManager::getUniquePluginByTypeId(const std::string& type_id, Plugin::
   return false;
 }
 
+void PluginManager::getPluginDescriptions(std::vector<PluginDescription>& descriptions, PluginDescription filter)
+{
+  descriptions.clear();
+
+  for (PluginLoaderBase* loader : Instance()->class_loader)
+  {
+    PluginDescription description;
+    description.base_class_package.data = loader->getBaseClassPackage();
+    description.base_class.data = loader->getBaseClassType();
+
+    if (!filter.base_class_package.data.empty() && filter.base_class_package.data != description.base_class_package.data)
+      continue;
+    if (!filter.base_class.data.empty() && filter.base_class.data != description.base_class.data)
+      continue;
+
+    for (std::string type_class : loader->getDeclaredClasses())
+    {
+      description.type_class_package.data = loader->getClassPackage(type_class);
+      description.type_class.data = type_class;
+
+      if (!filter.type_class_package.data.empty() && filter.type_class_package.data != description.type_class_package.data)
+        continue;
+      if (!filter.type_class.data.empty() && filter.type_class.data != description.type_class.data)
+        continue;
+
+      descriptions.push_back(description);
+    }
+  }
+}
+
 void PluginManager::removePlugin(Plugin::Ptr& plugin)
 {
   removePluginByName(plugin->getName());
@@ -210,13 +245,13 @@ bool PluginManager::hasPluginsByTypeId(const std::string& type_id)
   }
 }
 
-void PluginManager::loadParams(const ParameterSet& params)
+void PluginManager::loadParams(const vigir_generic_params::ParameterSet& params)
 {
   for (std::map<std::string, Plugin::Ptr>::iterator itr = Instance()->plugins_by_name.begin(); itr != Instance()->plugins_by_name.end(); itr++)
     itr->second->loadParams(params);
 }
 
-bool PluginManager::initializePlugins(ros::NodeHandle& nh, const ParameterSet& params)
+bool PluginManager::initializePlugins(ros::NodeHandle& nh, const vigir_generic_params::ParameterSet& params)
 {
   bool result = true;
 
@@ -235,5 +270,84 @@ bool PluginManager::initializePlugins(ros::NodeHandle& nh, const ParameterSet& p
 bool PluginManager::initializePlugins(ros::NodeHandle& nh)
 {
   return initializePlugins(nh, ParameterManager::getActive());
+}
+
+// --- Subscriber calls ---
+
+void PluginManager::addPlugin(const PluginManagementConstPtr& plugin_management_msg)
+{
+  addPlugin(plugin_management_msg->plugin.type_class.data, plugin_management_msg->plugin.base_class.data);
+}
+
+void PluginManager::removePlugin(const PluginManagementConstPtr& plugin_management_msg)
+{
+  removePluginByName(plugin_management_msg->plugin.type_class.data);
+}
+
+// --- Service calls ---
+
+bool PluginManager::getPluginDescriptionsService(GetPluginDescriptionsService::Request& req, GetPluginDescriptionsService::Response& resp)
+{
+  getPluginDescriptions(resp.plugin_descriptions, req.filter);
+  return true;
+}
+
+bool PluginManager::addPluginService(PluginManagementService::Request& req, PluginManagementService::Response& resp)
+{
+  return addPlugin(req.plugin.type_class.data, req.plugin.base_class.data);
+}
+
+bool PluginManager::removePluginService(PluginManagementService::Request& req, PluginManagementService::Response& resp)
+{
+  removePluginByName(req.plugin.type_class.data);
+  return true;
+}
+
+// --- Action Server calls ---
+
+void PluginManager::getPluginDescriptionsAction(const GetPluginDescriptionsGoalConstPtr& goal)
+{
+  // check if new goal was preempted in the meantime
+  if (get_plugin_descriptions_as->isPreemptRequested())
+  {
+    get_plugin_descriptions_as->setPreempted();
+    return;
+  }
+
+  GetPluginDescriptionsResult result;
+  getPluginDescriptions(result.plugin_descriptions, goal->filter);
+
+  get_plugin_descriptions_as->setSucceeded(result);
+}
+
+void PluginManager::addPluginAction(const PluginManagementGoalConstPtr& goal)
+{
+  // check if new goal was preempted in the meantime
+  if (add_plugin_as->isPreemptRequested())
+  {
+    add_plugin_as->setPreempted();
+    return;
+  }
+
+  PluginManagementResult result;
+  result.success.data = addPlugin(goal->plugin.type_class.data, goal->plugin.base_class.data);
+
+  add_plugin_as->setSucceeded(result);
+}
+
+void PluginManager::removePluginAction(const PluginManagementGoalConstPtr& goal)
+{
+  // check if new goal was preempted in the meantime
+  if (remove_plugin_as->isPreemptRequested())
+  {
+    remove_plugin_as->setPreempted();
+    return;
+  }
+
+  PluginManagementResult result;
+  result.success.data = true;
+  removePluginByName(goal->plugin.type_class.data);
+
+  remove_plugin_as->setSucceeded(result);
 }
 }

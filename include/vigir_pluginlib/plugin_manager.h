@@ -31,6 +31,8 @@
 
 #include <ros/ros.h>
 
+#include <actionlib/server/simple_action_server.h>
+
 #include <boost/noncopyable.hpp>
 
 #include <vigir_generic_params/parameter_manager.h>
@@ -38,11 +40,14 @@
 #include <vigir_pluginlib/plugin_loader.h>
 #include <vigir_pluginlib/plugin.h>
 
+#include <vigir_pluginlib/pluginlib_msgs.h>
+
 
 
 namespace vigir_pluginlib
 {
-using namespace vigir_generic_params;
+typedef actionlib::SimpleActionServer<GetPluginDescriptionsAction>  GetPluginDescriptionsActionServer;
+typedef actionlib::SimpleActionServer<PluginManagementAction>       PluginManagementActionServer;
 
 class PluginManager
   : boost::noncopyable
@@ -110,7 +115,7 @@ public:
    * @param type The name of the class to load
    * @return false, if instantiation has failed, otherwise true
    */
-  static bool addPlugin(const std::string& type, const std::string& base_class = std::string());
+  static bool addPlugin(const std::string& type_class, const std::string& base_class = std::string());
 
   template<typename PluginDerivedClass>
   static void addPlugin()
@@ -160,6 +165,7 @@ public:
     }
     return false;
   }
+
   static bool getPluginByName(const std::string& name, Plugin::Ptr& plugin);
 
   /// return all plugins derived by class T in alphabetical order (name)
@@ -181,6 +187,8 @@ public:
 
   /// returns a plugin marked as unique of specific type id
   static bool getUniquePluginByTypeId(const std::string& type_id, Plugin::Ptr& plugin);
+
+  static void getPluginDescriptions(std::vector<PluginDescription>& descriptions, PluginDescription filter = PluginDescription());
 
   static void removePlugin(Plugin::Ptr& plugin);
 
@@ -220,9 +228,9 @@ public:
   }
   static bool hasPluginsByTypeId(const std::string& type_id);
 
-  static void loadParams(const ParameterSet& params);
+  static void loadParams(const vigir_generic_params::ParameterSet& params);
 
-  static bool initializePlugins(ros::NodeHandle& nh, const ParameterSet& params);
+  static bool initializePlugins(ros::NodeHandle& nh, const vigir_generic_params::ParameterSet& params);
   static bool initializePlugins(ros::NodeHandle& nh);
 
   // typedefs
@@ -235,6 +243,34 @@ protected:
   static PluginManager::Ptr& Instance();
 
   static PluginManager::Ptr singelton;
+
+  // subscriber
+  void addPlugin(const PluginManagementConstPtr& plugin_management_msg);
+  void removePlugin(const PluginManagementConstPtr& plugin_management_msg);
+
+  // service calls
+  bool getPluginDescriptionsService(GetPluginDescriptionsService::Request& req, GetPluginDescriptionsService::Response& resp);
+  bool addPluginService(PluginManagementService::Request& req, PluginManagementService::Response& resp);
+  bool removePluginService(PluginManagementService::Request& req, PluginManagementService::Response& resp);
+
+  // action server calls
+  void getPluginDescriptionsAction(const GetPluginDescriptionsGoalConstPtr& goal);
+  void addPluginAction(const PluginManagementGoalConstPtr& goal);
+  void removePluginAction(const PluginManagementGoalConstPtr& goal);
+
+  // subscriber
+  ros::Subscriber add_plugin_sub;
+  ros::Subscriber remove_plugin_sub;
+
+  // service servers
+  ros::ServiceServer get_plugin_descriptions_srv;
+  ros::ServiceServer add_plugin_srv;
+  ros::ServiceServer remove_plugin_srv;
+
+  // action servers
+  boost::shared_ptr<GetPluginDescriptionsActionServer> get_plugin_descriptions_as;
+  boost::shared_ptr<PluginManagementActionServer> add_plugin_as;
+  boost::shared_ptr<PluginManagementActionServer> remove_plugin_as;
 
   // nodehandle to be used
   ros::NodeHandle nh;

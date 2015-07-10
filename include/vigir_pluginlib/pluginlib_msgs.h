@@ -1,6 +1,5 @@
 //=================================================================================================
 // Copyright (c) 2015, Alexander Stumpf, TU Darmstadt
-// Based on pluginlib (http://wiki.ros.org/pluginlib)
 // All rights reserved.
 
 // Redistribution and use in source and binary forms, with or without
@@ -27,47 +26,28 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //=================================================================================================
 
-#ifndef VIGIR_PLUGINLIB_PLUGIN_LOADER_BASE_H__
-#define VIGIR_PLUGINLIB_PLUGIN_LOADER_BASE_H__
+#ifndef VIGIR_PLUGINLIB_PARAMS_H__
+#define VIGIR_PLUGINLIB_PARAMS_H__
 
 #include <ros/ros.h>
 
-#include <pluginlib/class_loader_base.h>
+// messages
+#include <vigir_pluginlib/PluginDescription.h>
+#include <vigir_pluginlib/PluginManagement.h>
 
-#include <vigir_pluginlib/plugin.h>
+// services
+#include <vigir_pluginlib/GetPluginDescriptionsService.h>
+#include <vigir_pluginlib/PluginManagementService.h>
+
+// actions
+#include <vigir_pluginlib/GetPluginDescriptionsAction.h>
+#include <vigir_pluginlib/PluginManagementAction.h>
 
 
 
 namespace vigir_pluginlib
 {
-class PluginLoaderBase
-  : public virtual pluginlib::ClassLoaderBase
-{
-public:
-  /**
-   * @brief  Constructor for a ClassLoader
-   * @param package The package containing the base class
-   * @param base_class The type of the base class for classes to be loaded
-   * @param attrib_name The attribute to search for in manifext.xml files, defaults to "plugin"
-   * @param plugin_xml_paths The list of paths of plugin.xml files, defaults to be crawled via ros::package::getPlugins()
-   * @exception pluginlib::LibraryLoadException Thrown if package manifest cannot be found
-   */
-  PluginLoaderBase(std::string package, std::string base_class, std::string attrib_name = std::string("plugin"), std::vector<std::string> plugin_xml_paths = std::vector<std::string>());
-
-  /**
-   * @brief  Creates an instance of a plugin which is derived from vigir_pluginlib::Plugin base class (which implicitly calls loadLibraryForClass() to increment the library counter). Deleting the instance and calling unloadLibraryForClass() is automatically handled by the shared pointer.
-   * @param  lookup_name The name of the class to load
-   * @exception pluginlib::LibraryLoadException Thrown when the library associated with the class cannot be loaded
-   * @exception pluginlib::CreateClassException Thrown when the class cannot be instantiated
-   * @return An instance of the class
-   */
-  virtual Plugin::Ptr createPluginInstance(const std::string& lookup_name) = 0;
-
-  std::string getBaseClassPackage() const;
-
-protected:
-  std::string base_class_package;
-};
+// some helper
 }
 
 #endif
