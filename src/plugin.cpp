@@ -18,6 +18,16 @@ Plugin::~Plugin()
 {
 }
 
+void Plugin::setDescription(PluginDescription& description)
+{
+  this->description = description;
+}
+
+const PluginDescription& Plugin::getDescription() const
+{
+  return description;
+}
+
 void Plugin::loadParams(const vigir_generic_params::ParameterSet& /*params*/)
 {
 }

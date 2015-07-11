@@ -28,12 +28,14 @@ add_message_files(
   FILES
   PluginDescription.msg
   PluginManagement.msg
+  PluginStatus.msg
 )
 
 ## Generate services in the 'srv' folder
 add_service_files(
   FILES
   GetPluginDescriptionsService.srv
+  GetPluginStatusService.srv
   PluginManagementService.srv
 )
 
@@ -41,6 +43,7 @@ add_service_files(
 add_action_files(
   FILES
   GetPluginDescriptions.action
+  GetPluginStatus.action
   PluginManagement.action
 )
 

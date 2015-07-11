@@ -34,13 +34,16 @@
 // messages
 #include <vigir_pluginlib/PluginDescription.h>
 #include <vigir_pluginlib/PluginManagement.h>
+#include <vigir_pluginlib/PluginStatus.h>
 
 // services
 #include <vigir_pluginlib/GetPluginDescriptionsService.h>
+#include <vigir_pluginlib/GetPluginStatusService.h>
 #include <vigir_pluginlib/PluginManagementService.h>
 
 // actions
 #include <vigir_pluginlib/GetPluginDescriptionsAction.h>
+#include <vigir_pluginlib/GetPluginStatusAction.h>
 #include <vigir_pluginlib/PluginManagementAction.h>
 
 

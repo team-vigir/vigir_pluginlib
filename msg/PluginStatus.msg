@@ -1,0 +1,3 @@
+std_msgs/Header header
+vigir_pluginlib/PluginDescription description
+std_msgs/String name

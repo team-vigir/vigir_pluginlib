@@ -33,6 +33,8 @@
 
 #include <vigir_generic_params/parameter_manager.h>
 
+#include <vigir_pluginlib/PluginDescription.h>
+
 
 
 namespace vigir_pluginlib
@@ -43,6 +45,9 @@ public:
   Plugin(const std::string& name, const std::string& type_id, const vigir_generic_params::ParameterSet& params);
   Plugin(const std::string& name, const std::string& type_id);
   virtual ~Plugin();
+
+  void setDescription(PluginDescription& description);
+  const PluginDescription& getDescription() const;
 
   virtual void loadParams(const vigir_generic_params::ParameterSet& params);
 
@@ -66,6 +71,7 @@ public:
 private:
   const std::string type_id;
   const std::string name;
+  PluginDescription description;
 };
 }
 

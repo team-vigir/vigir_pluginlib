@@ -47,6 +47,7 @@
 namespace vigir_pluginlib
 {
 typedef actionlib::SimpleActionServer<GetPluginDescriptionsAction>  GetPluginDescriptionsActionServer;
+typedef actionlib::SimpleActionServer<GetPluginStatusAction>        GetPluginStatusActionServer;
 typedef actionlib::SimpleActionServer<PluginManagementAction>       PluginManagementActionServer;
 
 class PluginManager
@@ -189,6 +190,7 @@ public:
   static bool getUniquePluginByTypeId(const std::string& type_id, Plugin::Ptr& plugin);
 
   static void getPluginDescriptions(std::vector<PluginDescription>& descriptions, PluginDescription filter = PluginDescription());
+  static void getPluginStatus(std::vector<PluginStatus>& status_list, PluginDescription filter = PluginDescription());
 
   static void removePlugin(Plugin::Ptr& plugin);
 
@@ -250,11 +252,13 @@ protected:
 
   // service calls
   bool getPluginDescriptionsService(GetPluginDescriptionsService::Request& req, GetPluginDescriptionsService::Response& resp);
+  bool getPluginStatusService(GetPluginStatusService::Request& req, GetPluginStatusService::Response& resp);
   bool addPluginService(PluginManagementService::Request& req, PluginManagementService::Response& resp);
   bool removePluginService(PluginManagementService::Request& req, PluginManagementService::Response& resp);
 
   // action server calls
   void getPluginDescriptionsAction(const GetPluginDescriptionsGoalConstPtr& goal);
+  void getPluginStatusAction(const GetPluginStatusGoalConstPtr& goal);
   void addPluginAction(const PluginManagementGoalConstPtr& goal);
   void removePluginAction(const PluginManagementGoalConstPtr& goal);
 
@@ -264,11 +268,13 @@ protected:
 
   // service servers
   ros::ServiceServer get_plugin_descriptions_srv;
+  ros::ServiceServer get_plugin_status_srv;
   ros::ServiceServer add_plugin_srv;
   ros::ServiceServer remove_plugin_srv;
 
   // action servers
   boost::shared_ptr<GetPluginDescriptionsActionServer> get_plugin_descriptions_as;
+  boost::shared_ptr<GetPluginStatusActionServer> get_plugin_status_as;
   boost::shared_ptr<PluginManagementActionServer> add_plugin_as;
   boost::shared_ptr<PluginManagementActionServer> remove_plugin_as;
 
