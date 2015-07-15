@@ -1,0 +1,4 @@
+vigir_pluginlib_msgs/PluginDescription filter  # filtering options (optional)
+---
+vigir_pluginlib_msgs/PluginState[] states
+---

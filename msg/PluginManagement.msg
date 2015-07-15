@@ -1,1 +1,0 @@
-vigir_pluginlib/PluginDescription plugin

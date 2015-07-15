@@ -1,0 +1,2 @@
+std_msgs/Header header
+vigir_pluginlib_msgs/PluginDescription description
