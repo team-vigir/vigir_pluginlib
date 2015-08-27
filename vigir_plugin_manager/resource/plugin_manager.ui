@@ -24,7 +24,7 @@
   </property>
   <layout class="QVBoxLayout" name="verticalLayout_8" stretch="0">
    <item>
-    <widget class="QTableView" name="plugin_table_view"/>
+    <widget class="QTreeView" name="plugin_tree_view"/>
    </item>
   </layout>
  </widget>

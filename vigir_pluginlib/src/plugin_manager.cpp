@@ -38,13 +38,13 @@ void PluginManager::initialize(ros::NodeHandle& nh)
 
   // start own services
   Instance()->get_plugin_descriptions_srv = nh.advertiseService("plugin_manager/get_plugin_descriptions", &PluginManager::getPluginDescriptionsService, Instance().get());
-  Instance()->get_plugin_status_srv = nh.advertiseService("plugin_manager/get_plugin_status", &PluginManager::getPluginStatesService, Instance().get());
+  Instance()->get_plugin_status_srv = nh.advertiseService("plugin_manager/get_plugin_states", &PluginManager::getPluginStatesService, Instance().get());
   Instance()->add_plugin_srv = nh.advertiseService("plugin_manager/add_plugin", &PluginManager::addPluginService, Instance().get());
   Instance()->remove_plugin_srv = nh.advertiseService("plugin_manager/remove_plugin", &PluginManager::removePluginService, Instance().get());
 
   // init action servers
   Instance()->get_plugin_descriptions_as.reset(new GetPluginDescriptionsActionServer(nh, "plugin_manager/get_plugin_descriptions", boost::bind(&PluginManager::getPluginDescriptionsAction, Instance().get(), _1), false));
-  Instance()->get_plugin_status_as.reset(new GetPluginStatesActionServer(nh, "plugin_manager/get_plugin_status", boost::bind(&PluginManager::getPluginStatesAction, Instance().get(), _1), false));
+  Instance()->get_plugin_status_as.reset(new GetPluginStatesActionServer(nh, "plugin_manager/get_plugin_states", boost::bind(&PluginManager::getPluginStatesAction, Instance().get(), _1), false));
   Instance()->add_plugin_as.reset(new PluginManagementActionServer(nh, "plugin_manager/add_plugin", boost::bind(&PluginManager::addPluginAction, Instance().get(), _1), false));
   Instance()->remove_plugin_as.reset(new PluginManagementActionServer(nh, "plugin_manager/remove_plugin", boost::bind(&PluginManager::removePluginAction, Instance().get(), _1), false));
 

@@ -10,3 +10,4 @@ qtcreator-build
 *.user
 *.autosave
 *.pyc
+*.idea
