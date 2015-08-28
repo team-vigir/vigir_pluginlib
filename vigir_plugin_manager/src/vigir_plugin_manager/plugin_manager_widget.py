@@ -9,7 +9,7 @@ import actionlib
 from rqt_gui_py.plugin import Plugin
 from python_qt_binding import loadUi
 from python_qt_binding.QtCore import Qt, Signal, Slot, QObject, QAbstractItemModel
-from python_qt_binding.QtGui import QWidget, QHBoxLayout, QVBoxLayout
+from python_qt_binding.QtGui import QAbstractItemView, QWidget, QMenu, QAction, QHBoxLayout, QVBoxLayout
 
 from vigir_plugin_manager.plugin_tree_model import *
 from vigir_pluginlib.msg import PluginState, GetPluginStatesAction, GetPluginStatesGoal, GetPluginStatesResult, PluginManagementAction, PluginManagementGoal, PluginManagementResult
@@ -50,9 +50,15 @@ class PluginManagerWidget(QObject):
         loadUi(ui_file, self.plugin_manager_widget, {'QWidget': QWidget})
         vbox.addWidget(self.plugin_manager_widget)
 
-        # init table view
+        # init tree view
+        tree_view = self.plugin_manager_widget.plugin_tree_view
+        tree_view.setSelectionMode(QAbstractItemView.ExtendedSelection)
+
+        tree_view.setContextMenuPolicy(Qt.CustomContextMenu)
+        tree_view.customContextMenuRequested.connect(self.open_context_menu)
+
         self.plugin_tree_model = PluginTreeModel()
-        #self.plugin_manager_widget.plugin_tree_view.setModel(self.plugin_tree_model)
+        tree_view.setModel(self.plugin_tree_model)
 
         # connect to signals
         #self.plugin_manager_widget.send_torque_mode.clicked[bool].connect(self._handle_send_torque_mode_clicked)
@@ -76,6 +82,28 @@ class PluginManagerWidget(QObject):
         self.update_timer.shutdown()
         print "Done!"
 
+    def open_context_menu(self, position):
+        indexes = self.plugin_manager_widget.plugin_tree_view.selectedIndexes()
+        level = -1
+        if len(indexes) > 0:
+            level = 0
+            index = indexes[0]
+            while index.parent().isValid():
+                index = index.parent()
+                level += 1
+
+        menu = QMenu()
+        if level == 0:
+            expand_action = QAction(self.tr("Expand"), None)
+            expand_action.triggered.connect(self.plugin_manager_widget.plugin_tree_view.expandAll)
+            menu.addAction(expand_action)
+        if level == 0 or level == 1:
+            remove_action = QAction(self.tr("Remove"), None)
+            remove_action.triggered.connect(self._remove_plugin)
+            menu.addAction(remove_action)
+
+        menu.exec_(self.plugin_manager_widget.plugin_tree_view.viewport().mapToGlobal(position))
+
     def _update_plugin_states(self, event):
         if (self.get_plugin_states_client.wait_for_server(rospy.Duration(0.5))):
             self.get_plugin_states_client.send_goal(GetPluginStatesGoal())
@@ -85,8 +113,28 @@ class PluginManagerWidget(QObject):
     @Slot(list)
     def update_plugin_tree_view(self, states):
         #self.plugin_tree_model = PluginTreeModel() # TODO: otherwise crash!
-        self.plugin_tree_model.setData(states)
+        self.plugin_tree_model.updateData(states)
         self.plugin_manager_widget.plugin_tree_view.setModel(self.plugin_tree_model)
+        #for column in range(0, self.plugin_tree_model.columnCount()):
+        #    self.plugin_tree_model.resizeColumnToContents(column)
+        #self.plugin_manager_widget.plugin_tree_view.expandAll()
+
+    @Slot()
+    def _remove_plugin(self):
+        model = self.plugin_manager_widget.plugin_tree_view.model()
+
+        indexes = self.plugin_manager_widget.plugin_tree_view.selectionModel().selectedIndexes()
+        indexes = filter(lambda index: index.column() == 0, indexes)
+
+        rows = []
+        for index in indexes:
+            rows.append((index.row(), index.parent()))
+
+        rows.sort(reverse=True)
+
+        for row in rows:
+            model.removeRow(row[0], row[1])
+            # TODO: action server call
 
     def _control_mode_callback(self, control_mode):
         self.emit(QtCore.SIGNAL('setRobotModeStatusText(PyQt_PyObject)'), str(control_mode.data))
