@@ -125,8 +125,8 @@ public:
   {
     addPlugin(new PluginDerivedClass());
   }
-  static void addPlugin(Plugin::Ptr plugin);
   static void addPlugin(Plugin* plugin); // this function takes over pointer and will free memory automatically, when plugin is removed
+  static void addPlugin(Plugin::Ptr plugin);
 
   /**
    * Returns first found plugin matching typename T. If specific element should be returned, do set name.
@@ -195,7 +195,7 @@ public:
   static void getPluginStates(std::vector<msgs::PluginState>& plugin_states, msgs::PluginDescription filter = msgs::PluginDescription());
 
   static bool removePlugin(const msgs::PluginDescription& plugin_description);
-  static void removePluginByName(const std::string& name);
+  static bool removePluginByName(const std::string& name);
 
   static void removePlugin(Plugin::Ptr& plugin);
 
@@ -206,10 +206,7 @@ public:
     {
       boost::shared_ptr<T> plugin = boost::dynamic_pointer_cast<T>(itr->second);
       if (plugin)
-      {
-        ROS_INFO("[PluginManager] Removed plugin '%s' with type_id '%s'", itr->second->getName().c_str(), itr->second->getTypeId().c_str());
-        Instance()->plugins_by_name.erase(itr++);
-      }
+        removePluginByName(itr++->first);
       else
         itr++;
     }
@@ -246,6 +243,8 @@ protected:
 
   static PluginManager::Ptr singelton;
 
+  void publishPluginStateUpdate();
+
   // subscriber
   void addPlugin(const msgs::PluginDescriptionConstPtr plugin_description);
   void removePlugin(const msgs::PluginDescriptionConstPtr plugin_description);
@@ -266,15 +265,18 @@ protected:
   ros::Subscriber add_plugin_sub;
   ros::Subscriber remove_plugin_sub;
 
+  // publisher
+  ros::Publisher plugin_states_pub;
+
   // service servers
   ros::ServiceServer get_plugin_descriptions_srv;
-  ros::ServiceServer get_plugin_status_srv;
+  ros::ServiceServer get_plugin_states_srv;
   ros::ServiceServer add_plugin_srv;
   ros::ServiceServer remove_plugin_srv;
 
   // action servers
   boost::shared_ptr<GetPluginDescriptionsActionServer> get_plugin_descriptions_as;
-  boost::shared_ptr<GetPluginStatesActionServer> get_plugin_status_as;
+  boost::shared_ptr<GetPluginStatesActionServer> get_plugin_states_as;
   boost::shared_ptr<PluginManagementActionServer> add_plugin_as;
   boost::shared_ptr<PluginManagementActionServer> remove_plugin_as;
 
