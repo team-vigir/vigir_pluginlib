@@ -28,6 +28,7 @@ add_message_files(
   FILES
   PluginDescription.msg
   PluginState.msg
+  PluginStates.msg
 )
 
 ## Generate services in the 'srv' folder

@@ -34,6 +34,7 @@
 // messages
 #include <vigir_pluginlib_msgs/PluginDescription.h>
 #include <vigir_pluginlib_msgs/PluginState.h>
+#include <vigir_pluginlib_msgs/PluginStates.h>
 
 // services
 #include <vigir_pluginlib_msgs/GetPluginDescriptionsService.h>
