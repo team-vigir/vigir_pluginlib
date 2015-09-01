@@ -12,7 +12,7 @@ from python_qt_binding.QtCore import Qt, Signal, Slot, QObject, QAbstractItemMod
 from python_qt_binding.QtGui import QAbstractItemView, QWidget, QMenu, QAction, QHBoxLayout, QVBoxLayout
 
 from vigir_plugin_manager.plugin_tree_model import *
-from vigir_pluginlib.msg import PluginState, GetPluginStatesAction, GetPluginStatesGoal, GetPluginStatesResult, PluginManagementAction, PluginManagementGoal, PluginManagementResult
+from vigir_pluginlib_msgs.msg import PluginStates, GetPluginStatesAction, GetPluginStatesGoal, GetPluginStatesResult, PluginManagementAction, PluginManagementGoal, PluginManagementResult
 
 
 # UI initialization
@@ -71,15 +71,24 @@ class PluginManagerWidget(QObject):
         widget.setLayout(vbox)
         #context.add_widget(widget)
 
-        # init subscribers/action clients
-        self.get_plugin_states_client = actionlib.SimpleActionClient("/vigir/footstep_planning/plugin_manager/get_plugin_states", GetPluginStatesAction)
+        self.namespace = "/vigir/footstep_planning/" # TODO: Namespace selector
 
-        # start timer
-        self.update_timer = rospy.Timer(rospy.Duration(3), self._update_plugin_states)
+        # init subscribers
+        self.plugin_states_update_sub = rospy.Subscriber(self.namespace + "plugin_manager/plugin_states_update", PluginStates, self.plugin_states_update)
+
+        # init action clients
+        self.get_plugin_states_client = actionlib.SimpleActionClient(self.namespace + "plugin_manager/get_plugin_states", GetPluginStatesAction)
+        self.remove_plugin_client = actionlib.SimpleActionClient(self.namespace + "plugin_manager/remove_plugin", PluginManagementAction)
+
+        # init plugin tree view
+        if self.get_plugin_states_client.wait_for_server(rospy.Duration(0.5)):
+            self.get_plugin_states_client.send_goal(GetPluginStatesGoal())
+            if self.get_plugin_states_client.wait_for_result(rospy.Duration(5.0)):
+                self.plugin_states_signal.emit(self.get_plugin_states_client.get_result().states)
 
     def shutdown_plugin(self):
         print "Shutting down ..."
-        self.update_timer.shutdown()
+        self.plugin_states_update_sub.unregister()
         print "Done!"
 
     def open_context_menu(self, position):
@@ -104,17 +113,14 @@ class PluginManagerWidget(QObject):
 
         menu.exec_(self.plugin_manager_widget.plugin_tree_view.viewport().mapToGlobal(position))
 
-    def _update_plugin_states(self, event):
-        if (self.get_plugin_states_client.wait_for_server(rospy.Duration(0.5))):
-            self.get_plugin_states_client.send_goal(GetPluginStatesGoal())
-            if (self.get_plugin_states_client.wait_for_result(rospy.Duration(5.0))):
-                self.plugin_states_signal.emit(self.get_plugin_states_client.get_result().states)
+    def plugin_states_update(self, plugin_states_msg):
+        self.plugin_states_signal.emit(plugin_states_msg.states)
 
     @Slot(list)
     def update_plugin_tree_view(self, states):
         #self.plugin_tree_model = PluginTreeModel() # TODO: otherwise crash!
         self.plugin_tree_model.updateData(states)
-        self.plugin_manager_widget.plugin_tree_view.setModel(self.plugin_tree_model)
+        #self.plugin_manager_widget.plugin_tree_view.setModel(self.plugin_tree_model)
         #for column in range(0, self.plugin_tree_model.columnCount()):
         #    self.plugin_tree_model.resizeColumnToContents(column)
         #self.plugin_manager_widget.plugin_tree_view.expandAll()
@@ -128,13 +134,17 @@ class PluginManagerWidget(QObject):
 
         rows = []
         for index in indexes:
-            rows.append((index.row(), index.parent()))
+            rows.append((index.row(), index))
 
         rows.sort(reverse=True)
 
         for row in rows:
-            model.removeRow(row[0], row[1])
-            # TODO: action server call
+            if self.remove_plugin_client.wait_for_server(rospy.Duration(0.5)):
+                goal = PluginManagementGoal()
+                goal.plugin = index.internalPointer().getPluginState().description
+                self.remove_plugin_client.send_goal(goal)
+
+            #model.removeRow(row[0], row[1].parent())
 
     def _control_mode_callback(self, control_mode):
         self.emit(QtCore.SIGNAL('setRobotModeStatusText(PyQt_PyObject)'), str(control_mode.data))

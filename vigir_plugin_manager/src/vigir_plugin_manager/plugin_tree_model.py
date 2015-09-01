@@ -64,6 +64,11 @@ class PluginTreeModel(QtCore.QAbstractItemModel):
         return success
 
     def addBranch(self, base_class):
+        # check if branch already does exist
+        branch = self.findBranch(base_class)
+        if branch.isValid():
+            return branch
+
         state = PluginState()
         state.description.base_class.data = base_class
 
@@ -71,36 +76,26 @@ class PluginTreeModel(QtCore.QAbstractItemModel):
         if self.insertRows(position, 1):
             branch_item = self._root_item.child(position)
             branch_item.setData(state)
-            return self.index(self._root_item.childCount()-1, 0)
+            return self.index(position, 0)
 
         return QtCore.QModelIndex()
 
     def addItem(self, state):
-        if not state.description.base_class.data:
-            state.description.base_class.data = "Unknown"
-        if not state.description.type_class.data:
-            state.description.type_class.data = "Unknown"
-
         # Search for branch with type_class
-        branch = self.findBranch(state.description.base_class.data)
-
-        # Otherwise create branch with type class
-        if not branch.isValid():
-            branch = self.addBranch(state.description.base_class.data)
-
+        branch = self.addBranch(state.description.base_class.data)
         branch_item = self.getItem(branch)
 
         # check if child already does exist
         child = self.findChild(state.description, branch)
         if child.isValid():
-            return self.getItem(child)
+            return child
 
         # Add new item to branch
         position = branch_item.childCount()
         if self.insertRows(position, 1, branch):
             child_item = branch_item.child(position)
             child_item.setData(state)
-            return self.index(child_item.childNumber(), 0, branch)
+            return self.index(position, 0, branch)
 
         return QtCore.QModelIndex()
 
@@ -112,14 +107,32 @@ class PluginTreeModel(QtCore.QAbstractItemModel):
 
     def setData(self, data):
         self.clear()
-        for state in data:
-            self.addItem(state)
+        self.updateData(data)
 
     def updateData(self, data):
-        # removing old entries
-        # TODO
-        # updating entries
+        # update empty entries to keep UI tidy
         for state in data:
+            if not state.description.base_class.data:
+                state.description.base_class.data = "Unknown"
+            if not state.description.type_class.data:
+                state.description.type_class.data = "Unknown"
+
+        # collect entries which does not existing in recent update anymore
+        rows = []
+        for branch_item in self._root_item.childs():
+            branch_index = self.index(branch_item.childNumber(), 0)
+            for child_item in branch_item.childs():
+                result = filter(lambda state: state.description == child_item.getPluginState().description, data)
+                if not result:
+                    rows.append((child_item.childNumber(), branch_index))
+
+        rows.sort(reverse=True)
+        for row in rows:
+            self.removeRows(row[0], 1, row[1])
+
+        # adding entries
+        for state in data:
+            # adding new entries
             self.addItem(state)
 
     def data(self, index, role):
@@ -165,6 +178,11 @@ class PluginTreeModel(QtCore.QAbstractItemModel):
 
     def findChild(self, description, parent=QtCore.QModelIndex()):
         parent_item = self.getItem(parent)
+        if parent_item == self._root_item:
+            parent = self.findBranch(description.base_class.data, parent)
+
+        if not parent.isValid():
+            return QtCore.QModelIndex()
 
         child_item = parent_item.findChild(description)
         if child_item:
@@ -217,6 +235,9 @@ class PluginTreeItem:
         else:
             return None
 
+    def childs(self):
+        return self._child_items
+
     def childCount(self):
         return len(self._child_items)
 
@@ -266,18 +287,18 @@ class PluginTreeItem:
         return self._plugin_state
 
     def findChild(self, description):
-        child = filter(lambda child: child.getPluginState().description == description, self._child_items)
-        if not child:
+        child_item = filter(lambda child: child.getPluginState().description == description, self._child_items)
+        if not child_item:
             return None
         else:
-            return child[0]
+            return child_item[0]
 
     def findBranch(self, base_class):
-        branch = filter(lambda child: child.getPluginState().description.base_class.data == base_class, self._child_items)
-        if not branch:
+        branch_item = filter(lambda child: child.getPluginState().description.base_class.data == base_class, self._child_items)
+        if not branch_item:
             return None
         else:
-            return branch[0]
+            return branch_item[0]
 
     def parentItem(self):
         return self._parent_item
