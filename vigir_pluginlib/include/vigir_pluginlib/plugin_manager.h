@@ -116,6 +116,7 @@ public:
    * @param type The name of the class to load
    * @return false, if instantiation has failed, otherwise true
    */
+  static bool addPlugins(const std::vector<msgs::PluginDescription>& plugin_descriptions);
   static bool addPlugin(const msgs::PluginDescription& plugin_description);
   static bool addPlugin(const std::string& type_class, const std::string& base_class = std::string(), const std::string& name = std::string());
   static bool addPluginByName(const std::string& name);
@@ -194,6 +195,7 @@ public:
   static void getPluginDescriptions(std::vector<msgs::PluginDescription>& descriptions, msgs::PluginDescription filter = msgs::PluginDescription());
   static void getPluginStates(std::vector<msgs::PluginState>& plugin_states, msgs::PluginDescription filter = msgs::PluginDescription());
 
+  static bool removePlugins(const std::vector<msgs::PluginDescription>& plugin_descriptions);
   static bool removePlugin(const msgs::PluginDescription& plugin_description);
   static bool removePluginByName(const std::string& name);
 

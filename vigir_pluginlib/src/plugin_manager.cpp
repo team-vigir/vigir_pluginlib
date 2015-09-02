@@ -62,15 +62,35 @@ const PluginManager::PluginLoaderVector& PluginManager::getPluginClassLoader()
   return Instance()->class_loader;
 }
 
+bool PluginManager::addPlugins(const std::vector<msgs::PluginDescription>& plugin_descriptions)
+{
+  bool success = true;
+  for (const msgs::PluginDescription& description : plugin_descriptions)
+  {
+    if (!addPlugin(description))
+      success = false;
+  }
+  return success;
+}
+
 bool PluginManager::addPlugin(const msgs::PluginDescription& plugin_description)
 {
-  if (!plugin_description.name.data.empty())
-    return addPluginByName(plugin_description.name.data);
-  else if(!plugin_description.type_class.data.empty())
-    return addPlugin(plugin_description.type_class.data, plugin_description.base_class.data);
-  else
-    ROS_ERROR("[PluginManager] addPlugin: Call without name or type class!");
+  const std::string& name = plugin_description.name.data;
+  const std::string& type_class = plugin_description.type_class.data;
+  const std::string& base_class = plugin_description.base_class.data;
 
+  // try to add by name identifier located in config files
+  if (!name.empty())
+  {
+    if (ros::NodeHandle(Instance()->nh, name).hasParam("type_class"))
+      return addPluginByName(name);
+  }
+
+  // try to initialize by type
+  if(!type_class.empty())
+    return addPlugin(type_class, base_class, name);
+
+  ROS_ERROR("[PluginManager] addPlugin: Call without name or type class!");
   return false;
 }
 
@@ -282,6 +302,17 @@ void PluginManager::getPluginStates(std::vector<msgs::PluginState>& plugin_state
   }
 }
 
+bool PluginManager::removePlugins(const std::vector<msgs::PluginDescription>& plugin_descriptions)
+{
+  bool success = true;
+  for (const msgs::PluginDescription& description : plugin_descriptions)
+  {
+    if (!removePlugin(description))
+      success = false;
+  }
+  return success;
+}
+
 bool PluginManager::removePlugin(const msgs::PluginDescription& plugin_description)
 {
   if (!plugin_description.name.data.empty())
@@ -384,15 +415,14 @@ bool PluginManager::getPluginStatesService(msgs::GetPluginStatesService::Request
   return true;
 }
 
-bool PluginManager::addPluginService(msgs::PluginManagementService::Request& req, msgs::PluginManagementService::Response& resp)
+bool PluginManager::addPluginService(msgs::PluginManagementService::Request& req, msgs::PluginManagementService::Response& /*resp*/)
 {
-  return addPlugin(req.plugin);
+  return addPlugins(req.descriptions);
 }
 
-bool PluginManager::removePluginService(msgs::PluginManagementService::Request& req, msgs::PluginManagementService::Response& resp)
+bool PluginManager::removePluginService(msgs::PluginManagementService::Request& req, msgs::PluginManagementService::Response& /*resp*/)
 {
-  removePlugin(req.plugin);
-  return true;
+  return removePlugins(req.descriptions);
 }
 
 // --- Action Server calls ---
@@ -437,7 +467,7 @@ void PluginManager::addPluginAction(const msgs::PluginManagementGoalConstPtr goa
   }
 
   msgs::PluginManagementResult result;
-  result.success.data = addPlugin(goal->plugin);
+  result.success.data = addPlugins(goal->descriptions);
 
   if (result.success.data)
     add_plugin_as->setSucceeded(result);
@@ -455,7 +485,7 @@ void PluginManager::removePluginAction(const msgs::PluginManagementGoalConstPtr 
   }
 
   msgs::PluginManagementResult result;
-  result.success.data = removePlugin(goal->plugin);
+  result.success.data = removePlugins(goal->descriptions);
 
   if (result.success.data)
     remove_plugin_as->setSucceeded(result);
