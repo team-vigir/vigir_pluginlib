@@ -4,15 +4,16 @@ import os
 
 import rospy
 import rospkg
+import rosparam
 import actionlib
 
 from rqt_gui_py.plugin import Plugin
 from python_qt_binding import loadUi
-from python_qt_binding.QtCore import Qt, Signal, Slot, QObject, QAbstractItemModel
-from python_qt_binding.QtGui import QAbstractItemView, QWidget, QMenu, QAction, QHBoxLayout, QVBoxLayout
+from python_qt_binding.QtCore import Qt, Signal, Slot, QSignalMapper, QObject, QAbstractItemModel
+from python_qt_binding.QtGui import QAbstractItemView, QWidget, QMenu, QAction, QHBoxLayout, QVBoxLayout, QComboBox
 
 from vigir_plugin_manager.plugin_tree_model import *
-from vigir_pluginlib_msgs.msg import PluginStates, GetPluginStatesAction, GetPluginStatesGoal, GetPluginStatesResult, PluginManagementAction, PluginManagementGoal, PluginManagementResult
+from vigir_pluginlib_msgs.msg import PluginStates, GetPluginDescriptionsAction, GetPluginDescriptionsGoal, GetPluginStatesAction, GetPluginStatesGoal, GetPluginStatesResult, PluginManagementAction, PluginManagementGoal, PluginManagementResult
 
 
 # UI initialization
@@ -34,10 +35,19 @@ class PluginManagerDialog(Plugin):
 # Plugin Manager Widget
 class PluginManagerWidget(QObject):
 
-    plugin_states_signal = Signal(list)
+    plugin_states_updated_signal = Signal(list)
 
     def __init__(self, context):
         super(PluginManagerWidget, self).__init__()
+
+        self.namespace = '/'
+        self.plugin_states_update_sub = None
+        self.get_plugin_descriptions_client = None
+        self.get_plugin_states_client = None
+        self.add_plugin_client = None
+        self.remove_plugin_client = None
+        self.plugin_descriptions = []
+        self.add_plugin_selection_filter = PluginDescription()
 
         # start widget
         widget = context
@@ -55,43 +65,55 @@ class PluginManagerWidget(QObject):
         tree_view.setSelectionMode(QAbstractItemView.ExtendedSelection)
 
         tree_view.setContextMenuPolicy(Qt.CustomContextMenu)
-        tree_view.customContextMenuRequested.connect(self.open_context_menu)
+        tree_view.customContextMenuRequested.connect(self._open_context_menu)
 
         self.plugin_tree_model = PluginTreeModel()
         tree_view.setModel(self.plugin_tree_model)
 
+        # set up combo boxes
+        self.plugin_manager_widget.pluginNameComboBox.setInsertPolicy(QComboBox.NoInsert)
+
+        # references to combo boxes
+        self.plugin_cb = []
+        self.plugin_cb.append(self.plugin_manager_widget.pluginNameComboBox)
+        self.plugin_cb.append(self.plugin_manager_widget.pluginTypeClassComboBox)
+        self.plugin_cb.append(self.plugin_manager_widget.pluginTypePackageComboBox)
+        self.plugin_cb.append(self.plugin_manager_widget.pluginBaseClassComboBox)
+        self.plugin_cb.append(self.plugin_manager_widget.pluginBasePackageComboBox)
+
+        # init signal mapper
+        self.plugin_cb_mapper = QSignalMapper(self)
+        self.plugin_cb_mapper.mapped.connect(self.addPluginSelectionChanged)
+
         # connect to signals
-        #self.plugin_manager_widget.send_torque_mode.clicked[bool].connect(self._handle_send_torque_mode_clicked)
+        for i in range(len(self.plugin_cb)):
+            self.plugin_cb_mapper.setMapping(self.plugin_cb[i], i)
+            self.plugin_cb[i].currentIndexChanged.connect(self.plugin_cb_mapper.map)
+        self.plugin_manager_widget.namespaceComboBox.currentIndexChanged[str].connect(self.set_namespace)
+        self.plugin_manager_widget.searchNamespacePushButton.clicked[bool].connect(self.search_namespace)
+        self.plugin_manager_widget.refreshPluginStatesPushButton.clicked[bool].connect(self.refresh_plugin_descriptions)
+        self.plugin_manager_widget.refreshPluginStatesPushButton.clicked[bool].connect(self.refresh_plugin_states)
+        self.plugin_manager_widget.addPluginPushButton.clicked[bool].connect(self.add_plugin)
+        self.plugin_manager_widget.clearAddPluginSelectionPushButton.clicked[bool].connect(self.clearAddPluginSelection)
+        self.plugin_manager_widget.removePluginsPushButton.clicked[bool].connect(self.remove_plugins)
 
         # Qt signals
-        self.plugin_states_signal.connect(self.update_plugin_tree_view)
+        self.plugin_states_updated_signal.connect(self.update_plugin_tree_view)
         #self.connect(self, QtCore.SIGNAL('setTransitionModeStatusStyle(PyQt_PyObject)'), self._set_transition_mode_status_style)
 
         # end widget
         widget.setLayout(vbox)
         #context.add_widget(widget)
 
-        self.namespace = "/vigir/footstep_planning/" # TODO: Namespace selector
-
-        # init subscribers
-        self.plugin_states_update_sub = rospy.Subscriber(self.namespace + "plugin_manager/plugin_states_update", PluginStates, self.plugin_states_update)
-
-        # init action clients
-        self.get_plugin_states_client = actionlib.SimpleActionClient(self.namespace + "plugin_manager/get_plugin_states", GetPluginStatesAction)
-        self.remove_plugin_client = actionlib.SimpleActionClient(self.namespace + "plugin_manager/remove_plugin", PluginManagementAction)
-
         # init plugin tree view
-        if self.get_plugin_states_client.wait_for_server(rospy.Duration(0.5)):
-            self.get_plugin_states_client.send_goal(GetPluginStatesGoal())
-            if self.get_plugin_states_client.wait_for_result(rospy.Duration(5.0)):
-                self.plugin_states_signal.emit(self.get_plugin_states_client.get_result().states)
+        self.search_namespace()
 
     def shutdown_plugin(self):
-        print "Shutting down ..."
+        print 'Shutting down ...'
         self.plugin_states_update_sub.unregister()
-        print "Done!"
+        print 'Done!'
 
-    def open_context_menu(self, position):
+    def _open_context_menu(self, position):
         indexes = self.plugin_manager_widget.plugin_tree_view.selectedIndexes()
         level = -1
         if len(indexes) > 0:
@@ -103,22 +125,144 @@ class PluginManagerWidget(QObject):
 
         menu = QMenu()
         if level == 0:
-            expand_action = QAction(self.tr("Expand"), None)
+            expand_action = QAction(self.tr('Expand'), None)
             expand_action.triggered.connect(self.plugin_manager_widget.plugin_tree_view.expandAll)
             menu.addAction(expand_action)
         if level == 0 or level == 1:
-            remove_action = QAction(self.tr("Remove"), None)
-            remove_action.triggered.connect(self._remove_plugin)
+            remove_action = QAction(self.tr('Remove'), None)
+            remove_action.triggered.connect(self.remove_plugins)
             menu.addAction(remove_action)
 
         menu.exec_(self.plugin_manager_widget.plugin_tree_view.viewport().mapToGlobal(position))
 
+    def init_topics(self, namespace):
+        # init subscribers
+        self.plugin_states_update_sub = rospy.Subscriber(namespace + 'plugin_manager/plugin_states_update', PluginStates, self.plugin_states_update)
+
+        # init action clients
+        self.get_plugin_descriptions_client = actionlib.SimpleActionClient(namespace + 'plugin_manager/get_plugin_descriptions', GetPluginDescriptionsAction)
+        self.get_plugin_states_client = actionlib.SimpleActionClient(namespace + 'plugin_manager/get_plugin_states', GetPluginStatesAction)
+        self.add_plugin_client = actionlib.SimpleActionClient(namespace + 'plugin_manager/add_plugin', PluginManagementAction)
+        self.remove_plugin_client = actionlib.SimpleActionClient(namespace + 'plugin_manager/remove_plugin', PluginManagementAction)
+
+        print("Switched to namespace '" + namespace + "'")
+
+    @Slot()
+    def search_namespace(self):
+        cb = self.plugin_manager_widget.namespaceComboBox
+        cb.blockSignals(True)
+        cb.setEnabled(False)
+        cb.clear()
+        cb.addItem('Updating...')
+
+        # get topic list
+        _, _, topic_type = rospy.get_master().getTopicTypes()
+        topic_dict = dict(topic_type)
+        # filter list
+        topic_dict_filtered = dict()
+        for k, v in topic_dict.items():
+            if v == 'vigir_pluginlib_msgs/GetPluginStatesActionGoal':
+                topic_dict_filtered[k] = v
+
+        cb.clear()
+
+        namespaces = [ns[:-37] for ns in sorted(topic_dict_filtered.keys())]
+        cb.addItems(namespaces)
+
+        if cb.count() > 0:
+            self.set_namespace(cb.currentText())
+            cb.setEnabled(True)
+            cb.blockSignals(False)
+        else:
+            cb.addItem('No topics available!')
+
+    @Slot(str)
+    def set_namespace(self, namespace):
+        self.namespace = namespace
+        self.init_topics(namespace)
+        self.refresh_plugin_descriptions()
+        self.refresh_plugin_states()
+
+    @Slot(int)
+    def addPluginSelectionChanged(self, index):
+        self.plugin_manager_widget.addPluginPushButton.setEnabled(True)
+        #self.add_plugin_selection_filter
+
+    @Slot()
+    def clearAddPluginSelection(self):
+        self.plugin_cb[0].clearEditText()
+        for cb in self.plugin_cb:
+            cb.setCurrentIndex(0)
+        self.plugin_manager_widget.addPluginPushButton.setEnabled(False)
+
+    @Slot()
+    def refresh_plugin_descriptions(self):
+        # clear old status
+        self.plugin_descriptions = []
+
+        for cb in self.plugin_cb:
+            cb.blockSignals(True)
+            cb.clear()
+
+        self.plugin_manager_widget.addPluginPushButton.setEnabled(False)
+
+        # collect all plugin descriptions from manager
+        if self.get_plugin_descriptions_client.wait_for_server(rospy.Duration(0.5)):
+            self.get_plugin_descriptions_client.send_goal(GetPluginDescriptionsGoal())
+            if self.get_plugin_descriptions_client.wait_for_result(rospy.Duration(5.0)):
+                self.plugin_descriptions = self.get_plugin_descriptions_client.get_result().descriptions
+
+        # collect all plugins loaded into param server
+        all_params = rosparam.list_params(self.namespace)
+        for pname in all_params:
+            # remove the plugin manager namespace
+            if self.namespace == '/':
+                pname_sub = pname
+            else:
+                pname_sub = pname[len(self.namespace):]
+            psplit = pname_sub.split('/')
+            if len(psplit) >= 2 and psplit[1] == 'type_class':
+                description = PluginDescription()
+                description.name.data = psplit[0]
+                description.type_class.data = rospy.get_param(pname)
+                if rospy.has_param(self.namespace+psplit[0]+'/type_class_package'):
+                    description.type_class_package.data = rospy.get_param(self.namespace+psplit[0]+'/type_class_package')
+                if rospy.has_param(self.namespace+psplit[0]+'/base_class'):
+                    description.base_class.data = rospy.get_param(self.namespace+psplit[0]+'/base_class')
+                if rospy.has_param(self.namespace+psplit[0]+'/base_class_package'):
+                    description.base_class_package.data = rospy.get_param(self.namespace+psplit[0]+'/base_class_package')
+                self.plugin_descriptions.append(description)
+
+        # prepare combo box item texts
+        description = [[''] for i in range(5)]
+        for pd in self.plugin_descriptions:
+            description[0].append(pd.name.data)
+            description[1].append(pd.type_class.data)
+            description[2].append(pd.type_class_package.data)
+            description[3].append(pd.base_class.data)
+            description[4].append(pd.base_class_package.data)
+
+        # update combo boxes
+        for i in range(len(self.plugin_cb)):
+            description[i] = sorted(list(set(description[i])))
+            self.plugin_cb[i].addItems(description[i])
+
+        for cb in self.plugin_cb:
+            cb.blockSignals(False)
+
+    @Slot()
+    def refresh_plugin_states(self):
+        if self.get_plugin_states_client.wait_for_server(rospy.Duration(0.5)):
+            self.get_plugin_states_client.send_goal(GetPluginStatesGoal())
+            if self.get_plugin_states_client.wait_for_result(rospy.Duration(5.0)):
+                self.plugin_states_updated_signal.emit(self.get_plugin_states_client.get_result().states)
+
+    @Slot(PluginStates)
     def plugin_states_update(self, plugin_states_msg):
-        self.plugin_states_signal.emit(plugin_states_msg.states)
+        self.plugin_states_updated_signal.emit(plugin_states_msg.states)
 
     @Slot(list)
     def update_plugin_tree_view(self, states):
-        #self.plugin_tree_model = PluginTreeModel() # TODO: otherwise crash!
         self.plugin_tree_model.updateData(states)
         #self.plugin_manager_widget.plugin_tree_view.setModel(self.plugin_tree_model)
         #for column in range(0, self.plugin_tree_model.columnCount()):
@@ -126,25 +270,34 @@ class PluginManagerWidget(QObject):
         #self.plugin_manager_widget.plugin_tree_view.expandAll()
 
     @Slot()
-    def _remove_plugin(self):
+    def add_plugin(self):
+        if self.add_plugin_client.wait_for_server(rospy.Duration(0.5)):
+            description = PluginDescription()
+            description.name.data = self.plugin_cb[0].currentText()
+            description.type_class.data = self.plugin_cb[1].currentText()
+            description.type_class_package.data = self.plugin_cb[2].currentText()
+            description.base_class.data = self.plugin_cb[3].currentText()
+            description.base_class_package.data = self.plugin_cb[4].currentText()
+
+            goal = PluginManagementGoal()
+            goal.descriptions.append(description)
+            self.add_plugin_client.send_goal(goal)
+
+    @Slot()
+    def remove_plugins(self):
         model = self.plugin_manager_widget.plugin_tree_view.model()
 
         indexes = self.plugin_manager_widget.plugin_tree_view.selectionModel().selectedIndexes()
         indexes = filter(lambda index: index.column() == 0, indexes)
 
-        rows = []
+        descriptions = []
         for index in indexes:
-            rows.append((index.row(), index))
+            descriptions.append(index.internalPointer().getPluginState().description)
 
-        rows.sort(reverse=True)
+        if self.remove_plugin_client.wait_for_server(rospy.Duration(0.5)):
+            goal = PluginManagementGoal()
+            goal.descriptions = descriptions
+            self.remove_plugin_client.send_goal(goal)
 
-        for row in rows:
-            if self.remove_plugin_client.wait_for_server(rospy.Duration(0.5)):
-                goal = PluginManagementGoal()
-                goal.plugin = index.internalPointer().getPluginState().description
-                self.remove_plugin_client.send_goal(goal)
-
-            #model.removeRow(row[0], row[1].parent())
-
-    def _control_mode_callback(self, control_mode):
-        self.emit(QtCore.SIGNAL('setRobotModeStatusText(PyQt_PyObject)'), str(control_mode.data))
+    #def _control_mode_callback(self, control_mode):
+    #    self.emit(QtCore.SIGNAL('setRobotModeStatusText(PyQt_PyObject)'), str(control_mode.data))
