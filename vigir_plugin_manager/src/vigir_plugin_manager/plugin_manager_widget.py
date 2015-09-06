@@ -35,6 +35,8 @@ class PluginManagerDialog(Plugin):
 # Plugin Manager Widget
 class PluginManagerWidget(QObject):
 
+    _NUM_DESC_ATTRIBUTES = 5
+
     plugin_states_updated_signal = Signal(list)
 
     def __init__(self, context):
@@ -147,6 +149,39 @@ class PluginManagerWidget(QObject):
 
         print("Switched to namespace '" + namespace + "'")
 
+    def _set_data_in_description(self, description, index, data):
+        if index == 0:
+            description.name.data = data
+        if index == 1:
+            description.type_class.data = data
+        if index == 2:
+            description.type_class_package.data = data
+        if index == 3:
+            description.base_class.data = data
+        if index == 4:
+            description.base_class_package.data = data
+        return description
+
+    def _get_data_from_description(self, description, index):
+        if index == 0:
+            return description.name.data
+        if index == 1:
+            return description.type_class.data
+        if index == 2:
+            return description.type_class_package.data
+        if index == 3:
+            return description.base_class.data
+        if index == 4:
+            return description.base_class_package.data
+
+    def filter_descriptions(self, filtered_list, description_filter):
+        result = filtered_list
+        for i in range(self._NUM_DESC_ATTRIBUTES):
+            if not self._get_data_from_description(description_filter, i):
+                continue
+            result = filter(lambda d: self._get_data_from_description(description_filter, i) == self._get_data_from_description(d, i), result)
+        return result
+
     @Slot()
     def search_namespace(self):
         cb = self.plugin_manager_widget.namespaceComboBox
@@ -164,6 +199,7 @@ class PluginManagerWidget(QObject):
             if v == 'vigir_pluginlib_msgs/GetPluginStatesActionGoal':
                 topic_dict_filtered[k] = v
 
+        # update combo box with found namespaces
         cb.clear()
 
         namespaces = [ns[:-37] for ns in sorted(topic_dict_filtered.keys())]
@@ -185,14 +221,61 @@ class PluginManagerWidget(QObject):
 
     @Slot(int)
     def addPluginSelectionChanged(self, index):
+        # update filter mask
+        self._set_data_in_description(self.add_plugin_selection_filter, index, self.plugin_cb[index].currentText())
+
+        # block signals of combo boxes
+        for cb in self.plugin_cb:
+            cb.blockSignals(True)
+
+        # filter
+        filtered_descriptions = self.filter_descriptions(self.plugin_descriptions, self.add_plugin_selection_filter)
+
+        for cb_index in range(self._NUM_DESC_ATTRIBUTES):
+            if cb_index != index:
+                rows_enabled = 0
+                last_enabled_row_index = 0
+
+                data = [self._get_data_from_description(d, cb_index) for d in filtered_descriptions]
+                item_texts = [self.plugin_cb[cb_index].itemText(i) for i in range(self.plugin_cb[cb_index].count())]
+                for row in range(1, len(item_texts)):
+                    if not item_texts[row] or item_texts[row] in data:
+                        self.plugin_cb[cb_index].setItemData(row, 33, Qt.UserRole - 1)  # enable item
+                        rows_enabled += 1
+                        last_enabled_row_index = row
+                    else:
+                        self.plugin_cb[cb_index].setItemData(row, 0, Qt.UserRole - 1)   # disable item
+
+                # if only one element is left, then auto select it
+                if rows_enabled == 1:
+                    self.plugin_cb[cb_index].setCurrentIndex(last_enabled_row_index)
+
+        # unblock signals of combo boxes
+        for cb in self.plugin_cb:
+            cb.blockSignals(False)
+
         self.plugin_manager_widget.addPluginPushButton.setEnabled(True)
-        #self.add_plugin_selection_filter
 
     @Slot()
     def clearAddPluginSelection(self):
+        # block signals of combo boxes
+        for cb in self.plugin_cb:
+            cb.blockSignals(True)
+
         self.plugin_cb[0].clearEditText()
         for cb in self.plugin_cb:
             cb.setCurrentIndex(0)
+
+        # reset selection filter
+        self.add_plugin_selection_filter = PluginDescription()
+        for cb in self.plugin_cb:
+            for row in range(cb.count()):
+                cb.setItemData(row, 33, Qt.UserRole - 1)    # enable item
+
+        # unblock signals of combo boxes
+        for cb in self.plugin_cb:
+            cb.blockSignals(False)
+
         self.plugin_manager_widget.addPluginPushButton.setEnabled(False)
 
     @Slot()
@@ -234,13 +317,10 @@ class PluginManagerWidget(QObject):
                 self.plugin_descriptions.append(description)
 
         # prepare combo box item texts
-        description = [[''] for i in range(5)]
+        description = [[''] for i in range(self._NUM_DESC_ATTRIBUTES)]
         for pd in self.plugin_descriptions:
-            description[0].append(pd.name.data)
-            description[1].append(pd.type_class.data)
-            description[2].append(pd.type_class_package.data)
-            description[3].append(pd.base_class.data)
-            description[4].append(pd.base_class_package.data)
+            for i in range(self._NUM_DESC_ATTRIBUTES):
+                description[i].append(self._get_data_from_description(pd, i))
 
         # update combo boxes
         for i in range(len(self.plugin_cb)):
@@ -273,11 +353,8 @@ class PluginManagerWidget(QObject):
     def add_plugin(self):
         if self.add_plugin_client.wait_for_server(rospy.Duration(0.5)):
             description = PluginDescription()
-            description.name.data = self.plugin_cb[0].currentText()
-            description.type_class.data = self.plugin_cb[1].currentText()
-            description.type_class_package.data = self.plugin_cb[2].currentText()
-            description.base_class.data = self.plugin_cb[3].currentText()
-            description.base_class_package.data = self.plugin_cb[4].currentText()
+            for i in range(self._NUM_DESC_ATTRIBUTES):
+                self._set_data_in_description(description, i, self.plugin_cb[i].currentText())
 
             goal = PluginManagementGoal()
             goal.descriptions.append(description)
@@ -298,6 +375,3 @@ class PluginManagerWidget(QObject):
             goal = PluginManagementGoal()
             goal.descriptions = descriptions
             self.remove_plugin_client.send_goal(goal)
-
-    #def _control_mode_callback(self, control_mode):
-    #    self.emit(QtCore.SIGNAL('setRobotModeStatusText(PyQt_PyObject)'), str(control_mode.data))
