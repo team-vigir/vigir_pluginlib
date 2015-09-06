@@ -215,6 +215,8 @@ public:
   }
   static void removePluginsByTypeId(const std::string& type_id);
 
+  static bool loadPluginSet(const std::vector<msgs::PluginDescription>& plugin_descriptions);
+
   static bool hasPlugin(Plugin::Ptr& plugin);
 
   static bool hasPluginByName(const std::string& name);
@@ -256,12 +258,14 @@ protected:
   bool getPluginStatesService(msgs::GetPluginStatesService::Request& req, msgs::GetPluginStatesService::Response& resp);
   bool addPluginService(msgs::PluginManagementService::Request& req, msgs::PluginManagementService::Response& resp);
   bool removePluginService(msgs::PluginManagementService::Request& req, msgs::PluginManagementService::Response& resp);
+  bool loadPluginSetService(msgs::PluginManagementService::Request& req, msgs::PluginManagementService::Response& resp);
 
   // action server calls
   void getPluginDescriptionsAction(const msgs::GetPluginDescriptionsGoalConstPtr goal);
   void getPluginStatesAction(const msgs::GetPluginStatesGoalConstPtr goal);
   void addPluginAction(const msgs::PluginManagementGoalConstPtr goal);
   void removePluginAction(const msgs::PluginManagementGoalConstPtr goal);
+  void loadPluginSetAction(const msgs::PluginManagementGoalConstPtr goal);
 
   // subscriber
   ros::Subscriber add_plugin_sub;
@@ -275,12 +279,14 @@ protected:
   ros::ServiceServer get_plugin_states_srv;
   ros::ServiceServer add_plugin_srv;
   ros::ServiceServer remove_plugin_srv;
+  ros::ServiceServer load_plugin_set_srv;
 
   // action servers
   boost::shared_ptr<GetPluginDescriptionsActionServer> get_plugin_descriptions_as;
   boost::shared_ptr<GetPluginStatesActionServer> get_plugin_states_as;
   boost::shared_ptr<PluginManagementActionServer> add_plugin_as;
   boost::shared_ptr<PluginManagementActionServer> remove_plugin_as;
+  boost::shared_ptr<PluginManagementActionServer> load_plugin_set_as;
 
   // nodehandle (namespace) to be used
   ros::NodeHandle nh;

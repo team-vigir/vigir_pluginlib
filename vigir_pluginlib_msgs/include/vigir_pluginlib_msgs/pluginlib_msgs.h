@@ -54,6 +54,10 @@ namespace msgs
 {
 using namespace vigir_pluginlib_msgs;
 }
+
+bool isDescriptionMatching(const msgs::PluginDescription& plugin_description, const msgs::PluginDescription& filter);
+void filterDescriptionList(std::vector<msgs::PluginDescription>& filtered_plugin_descriptions, const std::vector<msgs::PluginDescription>& plugin_descriptions, const msgs::PluginDescription& filter, bool inverse = false);
+void filterDescriptionList(std::vector<msgs::PluginDescription>& filtered_plugin_descriptions, const std::vector<msgs::PluginDescription>& plugin_descriptions, const std::vector<msgs::PluginDescription>& filter_list, bool inverse = false);
 }
 
 #endif

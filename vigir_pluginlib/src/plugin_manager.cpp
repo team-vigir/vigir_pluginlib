@@ -43,18 +43,21 @@ void PluginManager::initialize(ros::NodeHandle& nh)
   Instance()->get_plugin_states_srv = nh.advertiseService("plugin_manager/get_plugin_states", &PluginManager::getPluginStatesService, Instance().get());
   Instance()->add_plugin_srv = nh.advertiseService("plugin_manager/add_plugin", &PluginManager::addPluginService, Instance().get());
   Instance()->remove_plugin_srv = nh.advertiseService("plugin_manager/remove_plugin", &PluginManager::removePluginService, Instance().get());
+  Instance()->load_plugin_set_srv = nh.advertiseService("plugin_manager/load_plugin_set", &PluginManager::loadPluginSetService, Instance().get());
 
   // init action servers
   Instance()->get_plugin_descriptions_as.reset(new GetPluginDescriptionsActionServer(nh, "plugin_manager/get_plugin_descriptions", boost::bind(&PluginManager::getPluginDescriptionsAction, Instance().get(), _1), false));
   Instance()->get_plugin_states_as.reset(new GetPluginStatesActionServer(nh, "plugin_manager/get_plugin_states", boost::bind(&PluginManager::getPluginStatesAction, Instance().get(), _1), false));
   Instance()->add_plugin_as.reset(new PluginManagementActionServer(nh, "plugin_manager/add_plugin", boost::bind(&PluginManager::addPluginAction, Instance().get(), _1), false));
   Instance()->remove_plugin_as.reset(new PluginManagementActionServer(nh, "plugin_manager/remove_plugin", boost::bind(&PluginManager::removePluginAction, Instance().get(), _1), false));
+  Instance()->load_plugin_set_as.reset(new PluginManagementActionServer(nh, "plugin_manager/load_plugin_set", boost::bind(&PluginManager::loadPluginSetAction, Instance().get(), _1), false));
 
   // start action servers
   Instance()->get_plugin_descriptions_as->start();
   Instance()->get_plugin_states_as->start();
   Instance()->add_plugin_as->start();
   Instance()->remove_plugin_as->start();
+  Instance()->load_plugin_set_as->start();
 }
 
 const PluginManager::PluginLoaderVector& PluginManager::getPluginClassLoader()
@@ -289,13 +292,7 @@ void PluginManager::getPluginStates(std::vector<msgs::PluginState>& plugin_state
     state.header.stamp = ros::Time::now();
     state.description = plugin->getDescription();
 
-    if (!filter.base_class_package.data.empty() && filter.base_class_package.data != state.description.base_class_package.data)
-      continue;
-    if (!filter.base_class.data.empty() && filter.base_class.data != state.description.base_class.data)
-      continue;
-    if (!filter.type_class_package.data.empty() && filter.type_class_package.data != state.description.type_class_package.data)
-      continue;
-    if (!filter.type_class.data.empty() && filter.type_class.data != state.description.type_class.data)
+    if (!vigir_pluginlib::isDescriptionMatching(state.description, filter))
       continue;
 
     plugin_states.push_back(state);
@@ -354,6 +351,30 @@ void PluginManager::removePluginsByTypeId(const std::string& type_id)
     else
       itr++;
   }
+}
+
+bool PluginManager::loadPluginSet(const std::vector<msgs::PluginDescription>& plugin_descriptions)
+{
+  bool success = true;
+
+  // get list of active plugins
+  std::vector<msgs::PluginDescription> active_plugins;
+  for (std::map<std::string, Plugin::Ptr>::const_iterator itr = Instance()->plugins_by_name.begin(); itr != Instance()->plugins_by_name.end(); itr++)
+    active_plugins.push_back(itr->second->getDescription());
+
+  // remove all plugins which are not existing in list
+  std::vector<msgs::PluginDescription> remove_plugin_list;
+  vigir_pluginlib::filterDescriptionList(remove_plugin_list, active_plugins, plugin_descriptions, true);
+  if (!removePlugins(remove_plugin_list))
+    success = false;
+
+  // add new plugins
+  std::vector<msgs::PluginDescription> add_plugin_list;
+  vigir_pluginlib::filterDescriptionList(add_plugin_list, plugin_descriptions, active_plugins, true);
+  if (!addPlugins(add_plugin_list))
+    success = false;
+
+  return success;
 }
 
 bool PluginManager::hasPlugin(Plugin::Ptr& plugin)
@@ -425,6 +446,11 @@ bool PluginManager::removePluginService(msgs::PluginManagementService::Request& 
   return removePlugins(req.descriptions);
 }
 
+bool PluginManager::loadPluginSetService(msgs::PluginManagementService::Request& req, msgs::PluginManagementService::Response& /*resp*/)
+{
+  return loadPluginSet(req.descriptions);
+}
+
 // --- Action Server calls ---
 
 void PluginManager::getPluginDescriptionsAction(const msgs::GetPluginDescriptionsGoalConstPtr goal)
@@ -491,5 +517,23 @@ void PluginManager::removePluginAction(const msgs::PluginManagementGoalConstPtr 
     remove_plugin_as->setSucceeded(result);
   else
     remove_plugin_as->setAborted(result);
+}
+
+void PluginManager::loadPluginSetAction(const msgs::PluginManagementGoalConstPtr goal)
+{
+  // check if new goal was preempted in the meantime
+  if (load_plugin_set_as->isPreemptRequested())
+  {
+    load_plugin_set_as->setPreempted();
+    return;
+  }
+
+  msgs::PluginManagementResult result;
+  result.success.data = loadPluginSet(goal->descriptions);
+
+  if (result.success.data)
+    load_plugin_set_as->setSucceeded(result);
+  else
+    load_plugin_set_as->setAborted(result);
 }
 }
