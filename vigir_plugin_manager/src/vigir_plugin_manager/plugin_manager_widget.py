@@ -233,7 +233,7 @@ class PluginManagerWidget(QObject):
         for cb in self.plugin_cb:
             cb.blockSignals(True)
 
-        # filter
+        # filter elements in combo boxes
         filtered_descriptions = self.filter_descriptions(self.plugin_descriptions, self.add_plugin_selection_filter)
 
         for cb_index in range(self._NUM_DESC_ATTRIBUTES):
@@ -309,6 +309,8 @@ class PluginManagerWidget(QObject):
             else:
                 pname_sub = pname[len(self.namespace):]
             psplit = pname_sub.split('/')
+
+            # get plugin description from param server
             if len(psplit) >= 2 and psplit[1] == 'type_class':
                 description = PluginDescription()
                 description.name.data = psplit[0]
@@ -357,25 +359,27 @@ class PluginManagerWidget(QObject):
     @Slot()
     def add_plugin(self):
         if self.add_plugin_client.wait_for_server(rospy.Duration(0.5)):
+            # generate plugin description
             description = PluginDescription()
             for i in range(self._NUM_DESC_ATTRIBUTES):
                 self._set_data_in_description(description, i, self.plugin_cb[i].currentText())
 
+            # send request to server
             goal = PluginManagementGoal()
             goal.descriptions.append(description)
             self.add_plugin_client.send_goal(goal)
 
     @Slot()
     def remove_plugins(self):
-        model = self.plugin_manager_widget.plugin_tree_view.model()
-
         indexes = self.plugin_manager_widget.plugin_tree_view.selectionModel().selectedIndexes()
         indexes = filter(lambda index: index.column() == 0, indexes)
 
+        # extract plugin descriptions from selection
         descriptions = []
         for index in indexes:
             descriptions.append(index.internalPointer().getPluginState().description)
 
+        # send request to server
         if self.remove_plugin_client.wait_for_server(rospy.Duration(0.5)):
             goal = PluginManagementGoal()
             goal.descriptions = descriptions

@@ -377,6 +377,22 @@ bool PluginManager::loadPluginSet(const std::vector<msgs::PluginDescription>& pl
   return success;
 }
 
+bool PluginManager::loadPluginSet(const std::string& name)
+{
+  std::string prefix = "plugin_sets/" + name;
+
+  if (!Instance()->nh.hasParam(prefix))
+  {
+    ROS_ERROR("[PluginManager] loadPluginSet: Couldn't find plugin set '%s' at parameter server.", name.c_str());
+    return false;
+  }
+
+  // grab all plugin description in the subtree
+  Instance()->nh.
+
+  return true;
+}
+
 bool PluginManager::hasPlugin(Plugin::Ptr& plugin)
 {
   std::map<std::string, Plugin::Ptr>::iterator itr = Instance()->plugins_by_name.find(plugin->getName());
@@ -401,6 +417,25 @@ void PluginManager::loadParams(const vigir_generic_params::ParameterSet& params)
 {
   for (std::map<std::string, Plugin::Ptr>::iterator itr = Instance()->plugins_by_name.begin(); itr != Instance()->plugins_by_name.end(); itr++)
     itr->second->loadParams(params);
+}
+
+bool PluginManager::getPluginDescription(const std::string& key, msgs::PluginDescription& description)
+{
+  description = msgs::PluginDescription();
+
+  if (!Instance()->nh.hasParam(key))
+  {
+    ROS_ERROR("[PluginManager] getPluginDescription: Couldn't retrieve plugin description at '%s' from parameter server.", key.c_str());
+    return false;
+  }
+
+  Instance()->nh.getParam(key + "/name", description.name.data);
+  Instance()->nh.getParam(key + "/type_class", description.type_class.data);
+  Instance()->nh.getParam(key + "/type_class_package", description.type_class_package.data);
+  Instance()->nh.getParam(key + "/base_class", description.base_class.data);
+  Instance()->nh.getParam(key + "/base_class_package", description.base_class_package.data);
+
+  return !description.name.data.empty() || !description.type_class.data.empty();
 }
 
 void PluginManager::publishPluginStateUpdate()
@@ -448,7 +483,10 @@ bool PluginManager::removePluginService(msgs::PluginManagementService::Request& 
 
 bool PluginManager::loadPluginSetService(msgs::PluginManagementService::Request& req, msgs::PluginManagementService::Response& /*resp*/)
 {
-  return loadPluginSet(req.descriptions);
+  if (!req.name.data.empty())
+    return loadPluginSet(req.name.data);
+  else
+    return loadPluginSet(req.descriptions);
 }
 
 // --- Action Server calls ---
@@ -529,7 +567,10 @@ void PluginManager::loadPluginSetAction(const msgs::PluginManagementGoalConstPtr
   }
 
   msgs::PluginManagementResult result;
-  result.success.data = loadPluginSet(goal->descriptions);
+  if (!goal->name.data.empty())
+    result.success.data = loadPluginSet(goal->name.data);
+  else
+    result.success.data = loadPluginSet(goal->descriptions);
 
   if (result.success.data)
     load_plugin_set_as->setSucceeded(result);

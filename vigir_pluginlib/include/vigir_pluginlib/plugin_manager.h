@@ -216,6 +216,7 @@ public:
   static void removePluginsByTypeId(const std::string& type_id);
 
   static bool loadPluginSet(const std::vector<msgs::PluginDescription>& plugin_descriptions);
+  static bool loadPluginSet(const std::string& name);
 
   static bool hasPlugin(Plugin::Ptr& plugin);
 
@@ -247,6 +248,8 @@ protected:
 
   static PluginManager::Ptr singelton;
 
+  // helper
+  bool getPluginDescription(const std::string& key, msgs::PluginDescription& description);
   void publishPluginStateUpdate();
 
   // subscriber
