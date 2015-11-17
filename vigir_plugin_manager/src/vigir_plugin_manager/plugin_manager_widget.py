@@ -44,6 +44,7 @@ class PluginManagerWidget(QObject):
 
         self.namespace = '/'
         self.plugin_states_update_sub = None
+        self.load_plugin_set_client = None
         self.get_plugin_descriptions_client = None
         self.get_plugin_states_client = None
         self.add_plugin_client = None
@@ -64,7 +65,7 @@ class PluginManagerWidget(QObject):
 
         # init ui
         icon = QIcon.fromTheme("view-refresh")
-        self.plugin_manager_widget.searchNamespacePushButton.setIcon(icon)
+        self.plugin_manager_widget.refreshAllPushButton.setIcon(icon)
         self.plugin_manager_widget.refreshPluginStatesPushButton.setIcon(icon)
 
         # init tree view
@@ -90,18 +91,22 @@ class PluginManagerWidget(QObject):
 
         # init signal mapper
         self.plugin_cb_mapper = QSignalMapper(self)
-        self.plugin_cb_mapper.mapped.connect(self.addPluginSelectionChanged)
+        self.plugin_cb_mapper.mapped.connect(self.add_plugin_selection_changed)
 
         # connect to signals
         for i in range(len(self.plugin_cb)):
             self.plugin_cb_mapper.setMapping(self.plugin_cb[i], i)
             self.plugin_cb[i].currentIndexChanged.connect(self.plugin_cb_mapper.map)
         self.plugin_manager_widget.namespaceComboBox.currentIndexChanged[str].connect(self.set_namespace)
-        self.plugin_manager_widget.searchNamespacePushButton.clicked[bool].connect(self.search_namespace)
+        self.plugin_manager_widget.refreshAllPushButton.clicked[bool].connect(self.search_namespace)
+        self.plugin_manager_widget.refreshAllPushButton.clicked[bool].connect(self.refresh_plugin_descriptions)
+        self.plugin_manager_widget.refreshAllPushButton.clicked[bool].connect(self.refresh_plugin_states)
+        self.plugin_manager_widget.loadPluginSetPushButton.clicked[bool].connect(self.load_plugin_set)
+        self.plugin_manager_widget.refreshPluginStatesPushButton.clicked[bool].connect(self.refresh_plugin_sets)
         self.plugin_manager_widget.refreshPluginStatesPushButton.clicked[bool].connect(self.refresh_plugin_descriptions)
         self.plugin_manager_widget.refreshPluginStatesPushButton.clicked[bool].connect(self.refresh_plugin_states)
         self.plugin_manager_widget.addPluginPushButton.clicked[bool].connect(self.add_plugin)
-        self.plugin_manager_widget.clearAddPluginSelectionPushButton.clicked[bool].connect(self.clearAddPluginSelection)
+        self.plugin_manager_widget.clearAddPluginSelectionPushButton.clicked[bool].connect(self.clear_add_plugin_selection)
         self.plugin_manager_widget.removePluginsPushButton.clicked[bool].connect(self.remove_plugins)
 
         # Qt signals
@@ -147,6 +152,7 @@ class PluginManagerWidget(QObject):
         self.plugin_states_update_sub = rospy.Subscriber(namespace + 'plugin_manager/plugin_states_update', PluginStates, self.plugin_states_update)
 
         # init action clients
+        self.load_plugin_set_client = actionlib.SimpleActionClient(namespace + 'plugin_manager/load_plugin_set', PluginManagementAction)
         self.get_plugin_descriptions_client = actionlib.SimpleActionClient(namespace + 'plugin_manager/get_plugin_descriptions', GetPluginDescriptionsAction)
         self.get_plugin_states_client = actionlib.SimpleActionClient(namespace + 'plugin_manager/get_plugin_states', GetPluginStatesAction)
         self.add_plugin_client = actionlib.SimpleActionClient(namespace + 'plugin_manager/add_plugin', PluginManagementAction)
@@ -221,11 +227,37 @@ class PluginManagerWidget(QObject):
     def set_namespace(self, namespace):
         self.namespace = namespace
         self.init_topics(namespace)
+        self.refresh_plugin_sets()
         self.refresh_plugin_descriptions()
         self.refresh_plugin_states()
 
+    @Slot()
+    def refresh_plugin_sets(self):
+        plugin_sets = []
+        if rospy.has_param(self.namespace+'/plugin_sets'):
+            plugin_sets = rospy.get_param(self.namespace+'/plugin_sets').keys()
+
+        cb = self.plugin_manager_widget.loadPluginSetComboBox
+        cb.clear()
+
+        if plugin_sets:
+            cb.addItems(plugin_sets)
+            cb.setEnabled(True)
+            self.plugin_manager_widget.loadPluginSetPushButton.setEnabled(True)
+        else:
+            cb.setEnabled(False)
+            self.plugin_manager_widget.loadPluginSetPushButton.setEnabled(False)
+
+    @Slot()
+    def load_plugin_set(self):
+        if self.load_plugin_set_client.wait_for_server(rospy.Duration(1.0)):
+            # send request to server
+            goal = PluginManagementGoal()
+            goal.name.data = self.plugin_manager_widget.loadPluginSetComboBox.currentText()
+            self.load_plugin_set_client.send_goal(goal)
+
     @Slot(int)
-    def addPluginSelectionChanged(self, index):
+    def add_plugin_selection_changed(self, index):
         # update filter mask
         self._set_data_in_description(self.add_plugin_selection_filter, index, self.plugin_cb[index].currentText())
 
@@ -262,7 +294,7 @@ class PluginManagerWidget(QObject):
         self.plugin_manager_widget.addPluginPushButton.setEnabled(True)
 
     @Slot()
-    def clearAddPluginSelection(self):
+    def clear_add_plugin_selection(self):
         # block signals of combo boxes
         for cb in self.plugin_cb:
             cb.blockSignals(True)
@@ -295,7 +327,7 @@ class PluginManagerWidget(QObject):
         self.plugin_manager_widget.addPluginPushButton.setEnabled(False)
 
         # collect all plugin descriptions from manager
-        if self.get_plugin_descriptions_client.wait_for_server(rospy.Duration(0.5)):
+        if self.get_plugin_descriptions_client.wait_for_server(rospy.Duration(1.0)):
             self.get_plugin_descriptions_client.send_goal(GetPluginDescriptionsGoal())
             if self.get_plugin_descriptions_client.wait_for_result(rospy.Duration(5.0)):
                 self.plugin_descriptions = self.get_plugin_descriptions_client.get_result().descriptions
@@ -339,7 +371,7 @@ class PluginManagerWidget(QObject):
 
     @Slot()
     def refresh_plugin_states(self):
-        if self.get_plugin_states_client.wait_for_server(rospy.Duration(0.5)):
+        if self.get_plugin_states_client.wait_for_server(rospy.Duration(1.0)):
             self.get_plugin_states_client.send_goal(GetPluginStatesGoal())
             if self.get_plugin_states_client.wait_for_result(rospy.Duration(5.0)):
                 self.plugin_states_updated_signal.emit(self.get_plugin_states_client.get_result().states)
@@ -358,7 +390,7 @@ class PluginManagerWidget(QObject):
 
     @Slot()
     def add_plugin(self):
-        if self.add_plugin_client.wait_for_server(rospy.Duration(0.5)):
+        if self.add_plugin_client.wait_for_server(rospy.Duration(1.0)):
             # generate plugin description
             description = PluginDescription()
             for i in range(self._NUM_DESC_ATTRIBUTES):
@@ -380,7 +412,7 @@ class PluginManagerWidget(QObject):
             descriptions.append(index.internalPointer().getPluginState().description)
 
         # send request to server
-        if self.remove_plugin_client.wait_for_server(rospy.Duration(0.5)):
+        if self.remove_plugin_client.wait_for_server(rospy.Duration(1.0)):
             goal = PluginManagementGoal()
             goal.descriptions = descriptions
             self.remove_plugin_client.send_goal(goal)

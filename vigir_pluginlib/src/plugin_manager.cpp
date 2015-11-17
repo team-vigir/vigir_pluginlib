@@ -387,6 +387,10 @@ bool PluginManager::loadPluginSet(const std::string& name)
     return false;
   }
 
+  // grab all plugin descriptions in the subtree
+  XmlRpc::XmlRpcValue val;
+  Instance()->nh.getParam("/", val);
+
   return true;
 }
 
