@@ -387,9 +387,6 @@ bool PluginManager::loadPluginSet(const std::string& name)
     return false;
   }
 
-  // grab all plugin description in the subtree
-  Instance()->nh.
-
   return true;
 }
 
