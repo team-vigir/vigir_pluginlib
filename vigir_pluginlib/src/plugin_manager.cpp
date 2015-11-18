@@ -79,25 +79,32 @@ bool PluginManager::addPlugins(const std::vector<msgs::PluginDescription>& plugi
 bool PluginManager::addPlugin(const msgs::PluginDescription& plugin_description)
 {
   const std::string& name = plugin_description.name.data;
+  const std::string& type_class_package = plugin_description.type_class_package.data;
   const std::string& type_class = plugin_description.type_class.data;
+  const std::string& base_class_package = plugin_description.base_class_package.data;
   const std::string& base_class = plugin_description.base_class.data;
 
   // try to add by name identifier located in config files
   if (!name.empty())
   {
-    if (ros::NodeHandle(Instance()->nh, name).hasParam("type_class"))
-      return addPluginByName(name);
+    ros::NodeHandle plugin_nh(Instance()->nh, name);
+    if (plugin_nh.hasParam("type_class"))
+    {
+      std::string _type_class;
+      if (plugin_nh.getParam("type_class", _type_class) && (type_class.empty() || type_class == _type_class))
+        return addPluginByName(name);
+    }
   }
 
   // try to initialize by type
   if(!type_class.empty())
-    return addPlugin(type_class, base_class, name);
+    return addPlugin(type_class_package, type_class, base_class_package, base_class, name);
 
   ROS_ERROR("[PluginManager] addPlugin: Call without name or type class!");
   return false;
 }
 
-bool PluginManager::addPlugin(const std::string& type_class, const std::string& base_class, const std::string& name)
+bool PluginManager::addPlugin(const std::string& type_class_package, const std::string& type_class, const std::string& base_class_package, const std::string& base_class, const std::string& name)
 {
   Plugin::Ptr p;
 
@@ -110,6 +117,22 @@ bool PluginManager::addPlugin(const std::string& type_class, const std::string& 
     {
       if (loader->isClassAvailable(type_class) && (base_class.empty() || base_class == loader->getBaseClassType()))
       {
+        if (type_class_package != loader->getClassPackage(type_class))
+        {
+          ROS_WARN("type_class_package: %s != %s", type_class_package.c_str(), loader->getClassPackage(type_class).c_str());
+          continue;
+        }
+        if (!base_class_package.empty() && base_class_package != loader->getBaseClassPackage())
+        {
+          ROS_WARN("base_class_package: %s != %s", base_class_package.c_str(), loader->getBaseClassPackage().c_str());
+          continue;
+        }
+        if (!base_class.empty() && base_class != loader->getBaseClassType())
+        {
+          ROS_WARN("base_class: %s != %s", base_class.c_str(), loader->getBaseClassType().c_str());
+          continue;
+        }
+
         if (!p)
         {
           _base_class = loader->getBaseClassType().c_str();
@@ -150,18 +173,21 @@ bool PluginManager::addPluginByName(const std::string& name)
   {
     ros::NodeHandle plugin_nh(Instance()->nh, name);
 
+    std::string type_class_package;
     std::string type_class;
+    std::string base_class_package;
     std::string base_class;
 
-    if (plugin_nh.getParam("type_class", type_class))
+    if (plugin_nh.getParam("type_class_package", type_class_package) && plugin_nh.getParam("type_class", type_class))
     {
+      plugin_nh.param("base_class_package", base_class_package, std::string());
       plugin_nh.param("base_class", base_class, std::string());
 
-      ROS_DEBUG("Constructing plugin '%s' of type_class '%s' (base_class '%s')", name.c_str(), type_class.c_str(), base_class.c_str());
-      return addPlugin(type_class, base_class, name);
+      ROS_DEBUG("Constructing plugin '%s' of type_class_package: '%s', type_class: '%s' (base_class_package: '%s', base_class: '%s')", name.c_str(), type_class_package.c_str(), type_class.c_str(), base_class_package.c_str(), base_class.c_str());
+      return addPlugin(type_class_package, type_class, base_class_package, base_class, name);
     }
     else
-      ROS_ERROR("Could not add plugin '%s' due to missing type_class. Check if configuration is loaded to the parameter server (namespace: '%s')!", name.c_str(), plugin_nh.getNamespace().c_str());
+      ROS_ERROR("Could not add plugin '%s' due to missing type_class_package or type_class. Check if configuration is loaded to the parameter server (namespace: '%s')!", name.c_str(), plugin_nh.getNamespace().c_str());
   }
   catch (std::exception& e)
   {
@@ -387,9 +413,15 @@ bool PluginManager::loadPluginSet(const std::string& name)
     return false;
   }
 
+  ROS_INFO("[PluginManager] loadPluginSet: Loading plugin set '%s'...", name.c_str());
+
   // grab all plugin descriptions in the subtree
   XmlRpc::XmlRpcValue val;
-  Instance()->nh.getParam("/", val);
+  Instance()->nh.getParam(prefix, val);
+
+  for (const auto& kv : val) {
+    // TODO
+  }
 
   return true;
 }

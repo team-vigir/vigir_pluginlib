@@ -118,7 +118,7 @@ public:
    */
   static bool addPlugins(const std::vector<msgs::PluginDescription>& plugin_descriptions);
   static bool addPlugin(const msgs::PluginDescription& plugin_description);
-  static bool addPlugin(const std::string& type_class, const std::string& base_class = std::string(), const std::string& name = std::string());
+  static bool addPlugin(const std::string& type_class_package, const std::string& type_class, const std::string& base_class_package = std::string(), const std::string& base_class = std::string(), const std::string& name = std::string());
   static bool addPluginByName(const std::string& name);
 
   template<typename PluginDerivedClass>
