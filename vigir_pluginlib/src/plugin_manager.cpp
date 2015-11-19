@@ -87,11 +87,20 @@ bool PluginManager::addPlugin(const msgs::PluginDescription& plugin_description)
   // try to add by name identifier located in config files
   if (!name.empty())
   {
-    ros::NodeHandle plugin_nh(Instance()->nh, name);
-    if (plugin_nh.hasParam("type_class"))
+    std::string error;
+    if (!ros::names::validate(name, error))
     {
+      ROS_ERROR("[PluginManager] addPlugin: Invalid name '%s' given: %s", name.c_str(), error.c_str());
+      return false;
+    }
+
+    ros::NodeHandle plugin_nh(Instance()->nh, name);
+    if (plugin_nh.hasParam("type_class_package") && plugin_nh.hasParam("type_class"))
+    {
+      std::string _type_class_package;
       std::string _type_class;
-      if (plugin_nh.getParam("type_class", _type_class) && (type_class.empty() || type_class == _type_class))
+      if (plugin_nh.getParam("type_class_package", _type_class_package) && (type_class_package.empty() || _type_class_package == type_class_package) &&
+          plugin_nh.getParam("type_class", _type_class) && (type_class.empty() || type_class == _type_class))
         return addPluginByName(name);
     }
   }
@@ -100,7 +109,7 @@ bool PluginManager::addPlugin(const msgs::PluginDescription& plugin_description)
   if(!type_class.empty())
     return addPlugin(type_class_package, type_class, base_class_package, base_class, name);
 
-  ROS_ERROR("[PluginManager] addPlugin: Call without name or type class!");
+  ROS_ERROR("[PluginManager] addPlugin: Call without name (%s) or type class (%s)!", name.c_str(), type_class.c_str());
   return false;
 }
 
@@ -413,17 +422,51 @@ bool PluginManager::loadPluginSet(const std::string& name)
     return false;
   }
 
+  if (Instance()->loaded_plugin_set == name)
+  {
+    ROS_INFO("[PluginManager] loadPluginSet: Plugin set '%s' is already loaded.", name.c_str());
+    return true;
+  }
+
+  Instance()->loaded_plugin_set.clear();
   ROS_INFO("[PluginManager] loadPluginSet: Loading plugin set '%s'...", name.c_str());
 
   // grab all plugin descriptions in the subtree
+  std::vector<msgs::PluginDescription> plugin_descriptions;
   XmlRpc::XmlRpcValue val;
   Instance()->nh.getParam(prefix, val);
 
-  for (const auto& kv : val) {
-    // TODO
+  if (val.getType() != XmlRpc::XmlRpcValue::TypeStruct)
+    return false;
+
+  for (const auto& kv : val)
+  {
+    msgs::PluginDescription description;
+    description.name.data = kv.first;
+
+    XmlRpc::XmlRpcValue d = kv.second;
+    if (d.getType() == XmlRpc::XmlRpcValue::TypeStruct)
+    {
+      if (d.hasMember("base_class_package"))
+        description.base_class_package.data = static_cast<std::string>(d["base_class_package"]);
+      if (d.hasMember("base_class"))
+        description.base_class.data = static_cast<std::string>(d["base_class"]);
+      if (d.hasMember("type_class_package"))
+        description.type_class_package.data = static_cast<std::string>(d["type_class_package"]);
+      if (d.hasMember("type_class"))
+        description.type_class.data = static_cast<std::string>(d["type_class"]);
+    }
+
+    plugin_descriptions.push_back(description);
   }
 
-  return true;
+  if (loadPluginSet(plugin_descriptions))
+  {
+    Instance()->loaded_plugin_set = name;
+    return true;
+  }
+  else
+    return false;
 }
 
 bool PluginManager::hasPlugin(Plugin::Ptr& plugin)

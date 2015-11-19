@@ -6,13 +6,13 @@ bool isDescriptionMatching(const msgs::PluginDescription& plugin_description, co
 {
   if (!filter.name.data.empty() && filter.name.data != plugin_description.name.data)
     return false;
-  if (!filter.base_class.data.empty() && filter.base_class.data != plugin_description.base_class.data)
-    return false;
-  if (!filter.base_class_package.data.empty() && filter.base_class_package.data != plugin_description.base_class_package.data)
+  if (!filter.type_class_package.data.empty() && filter.type_class_package.data != plugin_description.type_class_package.data)
     return false;
   if (!filter.type_class.data.empty() && filter.type_class.data != plugin_description.type_class.data)
     return false;
-  if (!filter.type_class_package.data.empty() && filter.type_class_package.data != plugin_description.type_class_package.data)
+  if (!filter.base_class_package.data.empty() && filter.base_class_package.data != plugin_description.base_class_package.data)
+    return false;
+  if (!filter.base_class.data.empty() && filter.base_class.data != plugin_description.base_class.data)
     return false;
 
   return true;
