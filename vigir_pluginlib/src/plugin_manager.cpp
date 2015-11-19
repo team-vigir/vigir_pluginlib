@@ -78,38 +78,20 @@ bool PluginManager::addPlugins(const std::vector<msgs::PluginDescription>& plugi
 
 bool PluginManager::addPlugin(const msgs::PluginDescription& plugin_description)
 {
-  const std::string& name = plugin_description.name.data;
   const std::string& type_class_package = plugin_description.type_class_package.data;
   const std::string& type_class = plugin_description.type_class.data;
   const std::string& base_class_package = plugin_description.base_class_package.data;
   const std::string& base_class = plugin_description.base_class.data;
-
-  // try to add by name identifier located in config files
-  if (!name.empty())
-  {
-    std::string error;
-    if (!ros::names::validate(name, error))
-    {
-      ROS_ERROR("[PluginManager] addPlugin: Invalid name '%s' given: %s", name.c_str(), error.c_str());
-      return false;
-    }
-
-    ros::NodeHandle plugin_nh(Instance()->nh, name);
-    if (plugin_nh.hasParam("type_class_package") && plugin_nh.hasParam("type_class"))
-    {
-      std::string _type_class_package;
-      std::string _type_class;
-      if (plugin_nh.getParam("type_class_package", _type_class_package) && (type_class_package.empty() || _type_class_package == type_class_package) &&
-          plugin_nh.getParam("type_class", _type_class) && (type_class.empty() || type_class == _type_class))
-        return addPluginByName(name);
-    }
-  }
+  const std::string& name = plugin_description.name.data;
 
   // try to initialize by type
-  if(!type_class.empty())
+  if(!type_class_package.empty() && !type_class.empty())
     return addPlugin(type_class_package, type_class, base_class_package, base_class, name);
+  // try to add by name identifier located in config files
+  else if (!name.empty())
+    return addPluginByName(name);
 
-  ROS_ERROR("[PluginManager] addPlugin: Call without name (%s) or type class (%s)!", name.c_str(), type_class.c_str());
+  ROS_ERROR("[PluginManager] addPlugin: Call without name (%s) or type class package (%s) and type class (%s)!", name.c_str(), type_class_package.c_str(), type_class.c_str());
   return false;
 }
 
@@ -127,20 +109,11 @@ bool PluginManager::addPlugin(const std::string& type_class_package, const std::
       if (loader->isClassAvailable(type_class) && (base_class.empty() || base_class == loader->getBaseClassType()))
       {
         if (type_class_package != loader->getClassPackage(type_class))
-        {
-          ROS_WARN("type_class_package: %s != %s", type_class_package.c_str(), loader->getClassPackage(type_class).c_str());
           continue;
-        }
         if (!base_class_package.empty() && base_class_package != loader->getBaseClassPackage())
-        {
-          ROS_WARN("base_class_package: %s != %s", base_class_package.c_str(), loader->getBaseClassPackage().c_str());
           continue;
-        }
         if (!base_class.empty() && base_class != loader->getBaseClassType())
-        {
-          ROS_WARN("base_class: %s != %s", base_class.c_str(), loader->getBaseClassType().c_str());
           continue;
-        }
 
         if (!p)
         {
@@ -226,7 +199,14 @@ void PluginManager::addPlugin(Plugin::Ptr plugin)
   Plugin::Ptr unique_plugin;
 
   if (itr != Instance()->plugins_by_name.end()) // replace by name
+  {
+    msgs::PluginDescription d_old = itr->second->getDescription();
+    msgs::PluginDescription d_new = plugin->getDescription();
+    if (d_old.type_class_package.data == d_new.type_class_package.data && d_old.type_class.data == d_new.type_class.data &&
+        d_old.base_class_package.data == d_new.base_class_package.data && d_old.base_class.data == d_new.base_class.data)
+      return;
     ROS_INFO("[PluginManager] Plugin '%s' with type_id '%s' is replaced by '%s' with type_id '%s'!", itr->second->getName().c_str(), itr->second->getTypeId().c_str(), plugin->getName().c_str(), plugin->getTypeId().c_str());
+  }
   else if (plugin->isUnique() && getUniquePluginByTypeId(plugin->getTypeId(), unique_plugin)) // replace by uniqueness
   {
     ROS_INFO("[PluginManager] Unique plugin '%s' with type_id '%s' is replaced by '%s'!", unique_plugin->getName().c_str(), unique_plugin->getTypeId().c_str(), plugin->getName().c_str());
@@ -238,6 +218,8 @@ void PluginManager::addPlugin(Plugin::Ptr plugin)
   Instance()->plugins_by_name[plugin->getName()] = plugin;
 
   plugin->initialize(Instance()->nh, ParameterManager::getActive());
+
+  Instance()->loaded_plugin_set.clear();
 
   // publish update
   Instance()->publishPluginStateUpdate();
@@ -365,6 +347,8 @@ bool PluginManager::removePluginByName(const std::string& name)
 
   ROS_INFO("[PluginManager] Removed plugin '%s' with type_id '%s'", itr->second->getName().c_str(), itr->second->getTypeId().c_str());
   Instance()->plugins_by_name.erase(itr);
+
+  Instance()->loaded_plugin_set.clear();
 
   // publish update
   Instance()->publishPluginStateUpdate();
