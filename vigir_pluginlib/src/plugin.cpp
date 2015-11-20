@@ -19,15 +19,6 @@ Plugin::~Plugin()
 {
 }
 
-const msgs::PluginDescription& Plugin::getDescription() const
-{
-  return description;
-}
-
-void Plugin::loadParams(const vigir_generic_params::ParameterSet& /*params*/)
-{
-}
-
 bool Plugin::initialize(ros::NodeHandle& nh, const vigir_generic_params::ParameterSet& params)
 {
   root_nh = nh;
@@ -44,6 +35,15 @@ bool Plugin::initialize(ros::NodeHandle& nh, const vigir_generic_params::Paramet
 
   loadParams(params);
   return true;
+}
+
+void Plugin::loadParams(const vigir_generic_params::ParameterSet& /*params*/)
+{
+}
+
+const msgs::PluginDescription& Plugin::getDescription() const
+{
+  return description;
 }
 
 const std::string& Plugin::getName() const

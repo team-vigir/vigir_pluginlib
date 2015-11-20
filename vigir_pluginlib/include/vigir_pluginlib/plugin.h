@@ -46,12 +46,11 @@ public:
   Plugin(const std::string& name, const std::string& type_id);
   virtual ~Plugin();
 
-  const msgs::PluginDescription& getDescription() const;
+  virtual bool initialize(ros::NodeHandle& nh, const vigir_generic_params::ParameterSet& params);
 
   virtual void loadParams(const vigir_generic_params::ParameterSet& params);
 
-  virtual bool initialize(ros::NodeHandle& nh, const vigir_generic_params::ParameterSet& params);
-
+  const msgs::PluginDescription& getDescription() const;
   const std::string& getName() const;
   const std::string& getTypeId() const;
 
@@ -70,6 +69,19 @@ public:
   friend class PluginManager;
 
 protected:
+  template<typename T>
+  bool getPluginParam(const std::string& name, T& val, const T& def = T(), bool no_warnings = false) const
+  {
+    std::string name_ns = description.param_namespace.data + std::string("/") + name;
+    if (root_nh.hasParam(name_ns) && root_nh.getParam(name_ns, val))
+      return true;
+
+    val = def;
+    if (!no_warnings)
+      ROS_WARN("[%s]: '%s' plugin parameter is missing in namespace %s!", this->name.c_str(), name.c_str(), description.param_namespace.data.c_str());
+    return false;
+  }
+
   ros::NodeHandle root_nh;
   ros::NodeHandle plugin_nh;
 

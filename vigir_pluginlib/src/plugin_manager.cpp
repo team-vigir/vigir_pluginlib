@@ -197,7 +197,7 @@ void PluginManager::addPlugin(Plugin::Ptr plugin)
 {
   if (!plugin)
   {
-    ROS_ERROR("[PluginManager] Got NULL pointer as plugin. Fix it immediatly!");
+    ROS_ERROR("[PluginManager] addPlugin: Got NULL pointer as plugin. Fix it immediatly!");
     return;
   }
 
@@ -212,19 +212,20 @@ void PluginManager::addPlugin(Plugin::Ptr plugin)
     if (d_old.type_class_package.data == d_new.type_class_package.data && d_old.type_class.data == d_new.type_class.data &&
         d_old.base_class_package.data == d_new.base_class_package.data && d_old.base_class.data == d_new.base_class.data)
       return;
-    ROS_INFO("[PluginManager] Plugin '%s' with type_id '%s' is replaced by '%s' with type_id '%s'!", itr->second->getName().c_str(), itr->second->getTypeId().c_str(), plugin->getName().c_str(), plugin->getTypeId().c_str());
+    ROS_INFO("[PluginManager] addPlugin: Plugin '%s' with type_id '%s' is replaced by '%s' with type_id '%s'!", itr->second->getName().c_str(), itr->second->getTypeId().c_str(), plugin->getName().c_str(), plugin->getTypeId().c_str());
   }
   else if (plugin->isUnique() && getUniquePluginByTypeId(plugin->getTypeId(), unique_plugin)) // replace by uniqueness
   {
-    ROS_INFO("[PluginManager] Unique plugin '%s' with type_id '%s' is replaced by '%s'!", unique_plugin->getName().c_str(), unique_plugin->getTypeId().c_str(), plugin->getName().c_str());
+    ROS_INFO("[PluginManager] addPlugin: Unique plugin '%s' with type_id '%s' is replaced by '%s'!", unique_plugin->getName().c_str(), unique_plugin->getTypeId().c_str(), plugin->getName().c_str());
     Instance()->plugins_by_name.erase(Instance()->plugins_by_name.find(unique_plugin->getName())); // prevent outputs by removePlugin call
   }
   else
-    ROS_INFO("[PluginManager] Added new plugin '%s' with type_id '%s'", plugin->getName().c_str(), plugin->getTypeId().c_str());
+    ROS_INFO("[PluginManager] addPlugin: Added new plugin '%s' with type_id '%s'", plugin->getName().c_str(), plugin->getTypeId().c_str());
 
   Instance()->plugins_by_name[plugin->getName()] = plugin;
 
-  plugin->initialize(Instance()->nh, ParameterManager::getActive());
+  if (!plugin->initialize(Instance()->nh, ParameterManager::getActive()))
+    ROS_ERROR("[PluginManager] addPlugin: Initialization of Plugin '%s' with type_id '%s' failed!", plugin->getName().c_str(), plugin->getTypeId().c_str());
 
   Instance()->loaded_plugin_set.clear();
 
@@ -438,6 +439,7 @@ bool PluginManager::loadPluginSet(const std::string& name)
     XmlRpc::XmlRpcValue d = kv.second;
     if (d.getType() == XmlRpc::XmlRpcValue::TypeStruct)
     {
+
       if (d.hasMember("type_class_package"))
         description.type_class_package.data = static_cast<std::string>(d["type_class_package"]);
       if (d.hasMember("type_class"))
@@ -447,9 +449,16 @@ bool PluginManager::loadPluginSet(const std::string& name)
       if (d.hasMember("base_class"))
         description.base_class.data = static_cast<std::string>(d["base_class"]);
       if (d.hasMember("params"))
-        description.param_namespace.data = prefix + std::string("/params");
+        description.param_namespace.data = prefix + std::string("/") + description.name.data + std::string("/params");
 
-      autocompletePluginDescriptionByName(description.name.data, description);
+      std::string import_name;
+      if (d.hasMember("import"))
+      {
+        import_name = static_cast<std::string>(d["import"]);
+        autocompletePluginDescriptionByName(import_name, description);
+      }
+      else
+        autocompletePluginDescriptionByName(description.name.data, description);
     }
 
     plugin_descriptions.push_back(description);
