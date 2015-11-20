@@ -207,12 +207,13 @@ void PluginManager::addPlugin(Plugin::Ptr plugin)
   if (itr != Instance()->plugins_by_name.end()) // replace by name
   {
     // skip duplicated plugin
-    msgs::PluginDescription d_old = itr->second->getDescription();
-    msgs::PluginDescription d_new = plugin->getDescription();
-    if (d_old.type_class_package.data == d_new.type_class_package.data && d_old.type_class.data == d_new.type_class.data &&
-        d_old.base_class_package.data == d_new.base_class_package.data && d_old.base_class.data == d_new.base_class.data)
+    if (isDescriptionMatching(plugin->getDescription(), itr->second->getDescription()))
+    {
+      ROS_INFO("[PluginManager] addPlugin: Plugin '%s' with type_class '%s' is already added. Skipped.", plugin->getName().c_str(), plugin->getTypeClass().c_str());
       return;
-    ROS_INFO("[PluginManager] addPlugin: Plugin '%s' with type_class '%s' is replaced by '%s' with type_class '%s'!", itr->second->getName().c_str(), itr->second->getTypeClass().c_str(), plugin->getName().c_str(), plugin->getTypeClass().c_str());
+    }
+    else
+      ROS_INFO("[PluginManager] addPlugin: Plugin '%s' with type_class '%s' is replaced by '%s' with type_class '%s'!", itr->second->getName().c_str(), itr->second->getTypeClass().c_str(), plugin->getName().c_str(), plugin->getTypeClass().c_str());
   }
   else if (plugin->isUnique() && getUniquePluginByTypeClass(plugin->getTypeClass(), unique_plugin)) // replace by uniqueness
   {
@@ -439,7 +440,6 @@ bool PluginManager::loadPluginSet(const std::string& name)
     XmlRpc::XmlRpcValue d = kv.second;
     if (d.getType() == XmlRpc::XmlRpcValue::TypeStruct)
     {
-
       if (d.hasMember("type_class_package"))
         description.type_class_package.data = static_cast<std::string>(d["type_class_package"]);
       if (d.hasMember("type_class"))
@@ -457,9 +457,8 @@ bool PluginManager::loadPluginSet(const std::string& name)
         import_name = static_cast<std::string>(d["import"]);
         autocompletePluginDescriptionByName(import_name, description);
       }
-      else
-        autocompletePluginDescriptionByName(description.name.data, description);
     }
+    autocompletePluginDescriptionByName(description.name.data, description);
 
     plugin_descriptions.push_back(description);
   }
@@ -467,10 +466,14 @@ bool PluginManager::loadPluginSet(const std::string& name)
   if (loadPluginSet(plugin_descriptions))
   {
     Instance()->loaded_plugin_set = name;
+    ROS_INFO("[PluginManager] loadPluginSet: Loaded plugin set '%s' successfully.", name.c_str());
     return true;
   }
   else
+  {
+    ROS_ERROR("[PluginManager] loadPluginSet: Loaded plugin set '%s' failed!.", name.c_str());
     return false;
+  }
 }
 
 bool PluginManager::hasPlugin(Plugin::Ptr& plugin)
