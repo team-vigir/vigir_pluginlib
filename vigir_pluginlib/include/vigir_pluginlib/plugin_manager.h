@@ -65,6 +65,14 @@ public:
   static void initialize(ros::NodeHandle& nh);
 
   /**
+   * @brief Tries to extract plugin description from param server using the given name
+   * @param name Name of the plugin
+   * @param plugin_description Output of extracted plugin description
+   * @return True if extraction was successful
+   */
+  static bool autocompletePluginDescriptionByName(const std::string& name, msgs::PluginDescription& plugin_description);
+
+  /**
    * @brief Adds ClassLoader for a specific type of plugins
    * @param package The package containing the base class
    * @param base_class The type of the base class for classes to be loaded
@@ -118,7 +126,6 @@ public:
    */
   static bool addPlugins(const std::vector<msgs::PluginDescription>& plugin_descriptions);
   static bool addPlugin(const msgs::PluginDescription& plugin_description);
-  static bool addPlugin(const std::string& type_class_package, const std::string& type_class, const std::string& base_class_package = std::string(), const std::string& base_class = std::string(), const std::string& name = std::string());
   static bool addPluginByName(const std::string& name);
 
   template<typename PluginDerivedClass>

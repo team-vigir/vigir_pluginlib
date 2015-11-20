@@ -60,6 +60,44 @@ void PluginManager::initialize(ros::NodeHandle& nh)
   Instance()->load_plugin_set_as->start();
 }
 
+bool PluginManager::autocompletePluginDescriptionByName(const std::string& name, msgs::PluginDescription& plugin_description)
+{
+  try
+  {
+    ros::NodeHandle plugin_nh(Instance()->nh, name);
+
+    std::string type_class_package;
+    if (!plugin_nh.getParam("type_class_package", type_class_package))
+      return false;
+
+    std::string type_class;
+    if (!plugin_nh.getParam("type_class", type_class))
+      return false;
+
+    if ((plugin_description.type_class_package.data.empty() || plugin_description.type_class_package.data == type_class_package) &&
+        (plugin_description.type_class.data.empty() || plugin_description.type_class.data == type_class))
+    {
+      plugin_description.type_class_package.data = type_class_package;
+      plugin_description.type_class.data = type_class;
+
+      if (plugin_description.base_class_package.data.empty())
+        plugin_nh.param("base_class_package", plugin_description.base_class_package.data, std::string());
+      if (plugin_description.base_class.data.empty())
+        plugin_nh.param("base_class", plugin_description.base_class.data, std::string());
+
+      if (plugin_description.param_namespace.data.empty() && plugin_nh.hasParam("params"))
+        plugin_description.param_namespace.data = name + std::string("/params");
+
+      return true;
+    }
+  }
+  catch (std::exception& e)
+  {
+    ROS_ERROR("Exception while extracting plugin description with name '%s':\n%s", name.c_str(), e.what());
+    return false;
+  }
+}
+
 const PluginManager::PluginLoaderVector& PluginManager::getPluginClassLoader()
 {
   return Instance()->class_loader;
@@ -78,70 +116,64 @@ bool PluginManager::addPlugins(const std::vector<msgs::PluginDescription>& plugi
 
 bool PluginManager::addPlugin(const msgs::PluginDescription& plugin_description)
 {
-  const std::string& type_class_package = plugin_description.type_class_package.data;
-  const std::string& type_class = plugin_description.type_class.data;
-  const std::string& base_class_package = plugin_description.base_class_package.data;
-  const std::string& base_class = plugin_description.base_class.data;
-  const std::string& name = plugin_description.name.data;
+  // best effort handling for incomplete plugin description
+  msgs::PluginDescription description = plugin_description;
+  if (description.type_class_package.data.empty() || description.type_class.data.empty())
+  {
+    if (description.name.data.empty())
+    {
+      ROS_ERROR("[PluginManager] addPlugin: Call without name (%s) or type class package (%s) and type class (%s)!", description.name.data.c_str(), description.type_class_package.data.c_str(), description.type_class.data.c_str());
+      return false;
+    }
+    else if (!autocompletePluginDescriptionByName(description.name.data, description))
+    {
+      ROS_ERROR("[PluginManager] addPlugin: Can't autocomplete plugin description for (%s)!", description.name.data.c_str());
+      return false;
+    }
+  }
 
-  // try to initialize by type
-  if(!type_class_package.empty() && !type_class.empty())
-    return addPlugin(type_class_package, type_class, base_class_package, base_class, name);
-  // try to add by name identifier located in config files
-  else if (!name.empty())
-    return addPluginByName(name);
-
-  ROS_ERROR("[PluginManager] addPlugin: Call without name (%s) or type class package (%s) and type class (%s)!", name.c_str(), type_class_package.c_str(), type_class.c_str());
-  return false;
-}
-
-bool PluginManager::addPlugin(const std::string& type_class_package, const std::string& type_class, const std::string& base_class_package, const std::string& base_class, const std::string& name)
-{
+  // create plugin
   Plugin::Ptr p;
 
   try
   {
-    std::string _base_class = base_class;
+    std::string _base_class = description.base_class.data;
 
     // search for appropriate ClassLoader
     for (PluginLoaderBase* loader : Instance()->class_loader)
     {
-      if (loader->isClassAvailable(type_class) && (base_class.empty() || base_class == loader->getBaseClassType()))
+      if (loader->isClassAvailable(description.type_class.data) && (description.base_class.data.empty() || description.base_class.data == loader->getBaseClassType()))
       {
-        if (type_class_package != loader->getClassPackage(type_class))
+        if (description.type_class_package.data != loader->getClassPackage(description.type_class.data))
           continue;
-        if (!base_class_package.empty() && base_class_package != loader->getBaseClassPackage())
+        if (!description.base_class_package.data.empty() && description.base_class_package.data != loader->getBaseClassPackage())
           continue;
-        if (!base_class.empty() && base_class != loader->getBaseClassType())
+        if (!description.base_class.data.empty() && description.base_class.data != loader->getBaseClassType())
           continue;
 
         if (!p)
         {
           _base_class = loader->getBaseClassType().c_str();
-          p = loader->createPluginInstance(type_class);
+          p = loader->createPluginInstance(description.type_class.data);
 
-          if (!name.empty())
-            p->name = name;
+          if (!description.name.data.empty())
+            p->name = description.name.data;
 
-          p->description.name.data = p->name;
-          p->description.base_class_package.data = loader->getBaseClassPackage();
-          p->description.base_class.data = loader->getBaseClassType();
-          p->description.type_class_package.data = loader->getClassPackage(type_class);
-          p->description.type_class.data = type_class;
+          p->description = description;
         }
         else
-          ROS_WARN("[PluginManager] Duplicate source for plugin '%s' found in ClassLoader '%s'!\nPlugin was already instanciated from ClassLoader '%s'", type_class.c_str(), loader->getBaseClassType().c_str(), _base_class.c_str());
+          ROS_WARN("[PluginManager] Duplicate source for plugin '%s' found in ClassLoader '%s'!\nPlugin was already instanciated from ClassLoader '%s'", description.type_class.data.c_str(), loader->getBaseClassType().c_str(), _base_class.c_str());
       }
     }
     if (!p)
     {
-      ROS_ERROR("[PluginManager] Plugin of type_class '%s' is unknown! Check if ClassLoader has been initialized!", type_class.c_str());
+      ROS_ERROR_STREAM("[PluginManager] Plugin with following description is unknown! Check if ClassLoader has been initialized!\n" << description);
       return false;
     }
   }
   catch (pluginlib::PluginlibException& e)
   {
-    ROS_ERROR("[PluginManager] Plugin of type_class '%s' failed to load for some reason. Error: %s", type_class.c_str(), e.what());
+    ROS_ERROR("[PluginManager] Plugin (%s) of type_class '%s' failed to load for some reason. Error: %s", description.name.data.c_str(), description.type_class.data.c_str(), e.what());
     return false;
   }
 
@@ -151,34 +183,8 @@ bool PluginManager::addPlugin(const std::string& type_class_package, const std::
 
 bool PluginManager::addPluginByName(const std::string& name)
 {
-  try
-  {
-    ros::NodeHandle plugin_nh(Instance()->nh, name);
-
-    std::string type_class_package;
-    std::string type_class;
-    std::string base_class_package;
-    std::string base_class;
-
-    if (plugin_nh.getParam("type_class_package", type_class_package) && plugin_nh.getParam("type_class", type_class))
-    {
-      plugin_nh.param("base_class_package", base_class_package, std::string());
-      plugin_nh.param("base_class", base_class, std::string());
-
-      ROS_DEBUG("Constructing plugin '%s' of type_class_package: '%s', type_class: '%s' (base_class_package: '%s', base_class: '%s')", name.c_str(), type_class_package.c_str(), type_class.c_str(), base_class_package.c_str(), base_class.c_str());
-      return addPlugin(type_class_package, type_class, base_class_package, base_class, name);
-    }
-    else
-      ROS_ERROR("Could not add plugin '%s' due to missing type_class_package or type_class. Check if configuration is loaded to the parameter server (namespace: '%s')!", name.c_str(), plugin_nh.getNamespace().c_str());
-  }
-  catch (std::exception& e)
-  {
-    ROS_ERROR("Exception while constructing plugin with name '%s':\n%s", name.c_str(), e.what());
-    return false;
-  }
-
-  ROS_ERROR("Failed to add plugin '%s'!", name.c_str());
-  return false;
+  msgs::PluginDescription description;
+  return autocompletePluginDescriptionByName(name, description) && addPlugin(description);
 }
 
 void PluginManager::addPlugin(Plugin* plugin)
@@ -200,6 +206,7 @@ void PluginManager::addPlugin(Plugin::Ptr plugin)
 
   if (itr != Instance()->plugins_by_name.end()) // replace by name
   {
+    // skip duplicated plugin
     msgs::PluginDescription d_old = itr->second->getDescription();
     msgs::PluginDescription d_new = plugin->getDescription();
     if (d_old.type_class_package.data == d_new.type_class_package.data && d_old.type_class.data == d_new.type_class.data &&
@@ -431,14 +438,18 @@ bool PluginManager::loadPluginSet(const std::string& name)
     XmlRpc::XmlRpcValue d = kv.second;
     if (d.getType() == XmlRpc::XmlRpcValue::TypeStruct)
     {
-      if (d.hasMember("base_class_package"))
-        description.base_class_package.data = static_cast<std::string>(d["base_class_package"]);
-      if (d.hasMember("base_class"))
-        description.base_class.data = static_cast<std::string>(d["base_class"]);
       if (d.hasMember("type_class_package"))
         description.type_class_package.data = static_cast<std::string>(d["type_class_package"]);
       if (d.hasMember("type_class"))
         description.type_class.data = static_cast<std::string>(d["type_class"]);
+      if (d.hasMember("base_class_package"))
+        description.base_class_package.data = static_cast<std::string>(d["base_class_package"]);
+      if (d.hasMember("base_class"))
+        description.base_class.data = static_cast<std::string>(d["base_class"]);
+      if (d.hasMember("params"))
+        description.param_namespace.data = prefix + std::string("/params");
+
+      autocompletePluginDescriptionByName(description.name.data, description);
     }
 
     plugin_descriptions.push_back(description);
