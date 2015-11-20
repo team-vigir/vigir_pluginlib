@@ -9,7 +9,7 @@ import rospkg
 
 from python_qt_binding.QtCore import Qt, QObject, QAbstractItemModel
 
-from vigir_pluginlib.msg import PluginState, PluginDescription
+from vigir_pluginlib_msgs.msg import PluginState, PluginDescription
 
 
 # Tree Model for Plugins
