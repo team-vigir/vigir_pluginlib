@@ -42,8 +42,10 @@ namespace vigir_pluginlib
 class Plugin
 {
 public:
-  Plugin(const std::string& name, const std::string& type_id, const vigir_generic_params::ParameterSet& params);
-  Plugin(const std::string& name, const std::string& type_id);
+  Plugin(const msgs::PluginDescription& description, const vigir_generic_params::ParameterSet& params);
+  Plugin(const msgs::PluginDescription& description);
+  Plugin(const std::string& name, const std::string& type_class, const vigir_generic_params::ParameterSet& params);
+  Plugin(const std::string& name, const std::string& type_class);
   virtual ~Plugin();
 
   virtual bool initialize(ros::NodeHandle& nh, const vigir_generic_params::ParameterSet& params);
@@ -52,13 +54,16 @@ public:
 
   const msgs::PluginDescription& getDescription() const;
   const std::string& getName() const;
-  const std::string& getTypeId() const;
+  const std::string& getTypeClassPackage() const;
+  const std::string& getTypeClass() const;
+  const std::string& getBaseClassPackage() const;
+  const std::string& getBaseClass() const;
 
   /**
-   * Unique plugins (default: true) can only exist once per type_id.
-   * The plugin manager will replace any plugin of same type_id with the
+   * Unique plugins (default: true) can only exist once per type_class.
+   * The plugin manager will replace any plugin of same type_class with the
    * new one. If a plugin can live in coexistence with others plugins
-   * with the the same type_id, override this method to return false.
+   * with the the same type_class, override this method to return false.
    **/
   virtual bool isUnique() const;
 
@@ -78,17 +83,14 @@ protected:
 
     val = def;
     if (!no_warnings)
-      ROS_WARN("[%s]: '%s' plugin parameter is missing in namespace %s!", this->name.c_str(), name.c_str(), description.param_namespace.data.c_str());
+      ROS_WARN("[%s]: '%s' plugin parameter is missing in namespace '%s'!", this->getName().c_str(), name.c_str(), description.param_namespace.data.c_str());
     return false;
   }
 
   ros::NodeHandle root_nh;
   ros::NodeHandle plugin_nh;
 
-  std::string name;
-
 private:
-  const std::string type_id;
   msgs::PluginDescription description;
 };
 }

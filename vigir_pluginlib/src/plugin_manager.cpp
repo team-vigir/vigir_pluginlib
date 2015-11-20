@@ -156,8 +156,8 @@ bool PluginManager::addPlugin(const msgs::PluginDescription& plugin_description)
           _base_class = loader->getBaseClassType().c_str();
           p = loader->createPluginInstance(description.type_class.data);
 
-          if (!description.name.data.empty())
-            p->name = description.name.data;
+          if (description.name.data.empty())
+            description.name.data = p->getName();
 
           p->description = description;
         }
@@ -212,20 +212,20 @@ void PluginManager::addPlugin(Plugin::Ptr plugin)
     if (d_old.type_class_package.data == d_new.type_class_package.data && d_old.type_class.data == d_new.type_class.data &&
         d_old.base_class_package.data == d_new.base_class_package.data && d_old.base_class.data == d_new.base_class.data)
       return;
-    ROS_INFO("[PluginManager] addPlugin: Plugin '%s' with type_id '%s' is replaced by '%s' with type_id '%s'!", itr->second->getName().c_str(), itr->second->getTypeId().c_str(), plugin->getName().c_str(), plugin->getTypeId().c_str());
+    ROS_INFO("[PluginManager] addPlugin: Plugin '%s' with type_class '%s' is replaced by '%s' with type_class '%s'!", itr->second->getName().c_str(), itr->second->getTypeClass().c_str(), plugin->getName().c_str(), plugin->getTypeClass().c_str());
   }
-  else if (plugin->isUnique() && getUniquePluginByTypeId(plugin->getTypeId(), unique_plugin)) // replace by uniqueness
+  else if (plugin->isUnique() && getUniquePluginByTypeClass(plugin->getTypeClass(), unique_plugin)) // replace by uniqueness
   {
-    ROS_INFO("[PluginManager] addPlugin: Unique plugin '%s' with type_id '%s' is replaced by '%s'!", unique_plugin->getName().c_str(), unique_plugin->getTypeId().c_str(), plugin->getName().c_str());
+    ROS_INFO("[PluginManager] addPlugin: Unique plugin '%s' with type_class '%s' is replaced by '%s'!", unique_plugin->getName().c_str(), unique_plugin->getTypeClass().c_str(), plugin->getName().c_str());
     Instance()->plugins_by_name.erase(Instance()->plugins_by_name.find(unique_plugin->getName())); // prevent outputs by removePlugin call
   }
   else
-    ROS_INFO("[PluginManager] addPlugin: Added new plugin '%s' with type_id '%s'", plugin->getName().c_str(), plugin->getTypeId().c_str());
+    ROS_INFO("[PluginManager] addPlugin: Added new plugin '%s' with type_class '%s'", plugin->getName().c_str(), plugin->getTypeClass().c_str());
 
   Instance()->plugins_by_name[plugin->getName()] = plugin;
 
   if (!plugin->initialize(Instance()->nh, ParameterManager::getActive()))
-    ROS_ERROR("[PluginManager] addPlugin: Initialization of Plugin '%s' with type_id '%s' failed!", plugin->getName().c_str(), plugin->getTypeId().c_str());
+    ROS_ERROR("[PluginManager] addPlugin: Initialization of Plugin '%s' with type_class '%s' failed!", plugin->getName().c_str(), plugin->getTypeClass().c_str());
 
   Instance()->loaded_plugin_set.clear();
 
@@ -245,26 +245,26 @@ bool PluginManager::getPluginByName(const std::string& name, Plugin::Ptr& plugin
   return true;
 }
 
-bool PluginManager::getPluginsByTypeId(const std::string& type_id, std::vector<Plugin::Ptr>& plugins)
+bool PluginManager::getPluginsByTypeClass(const std::string& type_class, std::vector<Plugin::Ptr>& plugins)
 {
   plugins.clear();
 
   for (std::map<std::string, Plugin::Ptr>::iterator itr = Instance()->plugins_by_name.begin(); itr != Instance()->plugins_by_name.end(); itr++)
   {
-    if (itr->second->getTypeId() == type_id)
+    if (itr->second->getTypeClass() == type_class)
       plugins.push_back(itr->second);
   }
 
   return !plugins.empty();
 }
 
-bool PluginManager::getUniquePluginByTypeId(const std::string& type_id, Plugin::Ptr& plugin)
+bool PluginManager::getUniquePluginByTypeClass(const std::string& type_class, Plugin::Ptr& plugin)
 {
   plugin.reset();
 
   for (std::map<std::string, Plugin::Ptr>::iterator itr = Instance()->plugins_by_name.begin(); itr != Instance()->plugins_by_name.end(); itr++)
   {
-    if (itr->second->isUnique() && itr->second->getTypeId() == type_id)
+    if (itr->second->isUnique() && itr->second->getTypeClass() == type_class)
     {
       plugin = itr->second;
       return true;
@@ -353,7 +353,7 @@ bool PluginManager::removePluginByName(const std::string& name)
   if (itr == Instance()->plugins_by_name.end())
     return false;
 
-  ROS_INFO("[PluginManager] Removed plugin '%s' with type_id '%s'", itr->second->getName().c_str(), itr->second->getTypeId().c_str());
+  ROS_INFO("[PluginManager] Removed plugin '%s' with type_class '%s'", itr->second->getName().c_str(), itr->second->getTypeClass().c_str());
   Instance()->plugins_by_name.erase(itr);
 
   Instance()->loaded_plugin_set.clear();
@@ -369,11 +369,11 @@ void PluginManager::removePlugin(Plugin::Ptr& plugin)
   removePluginByName(plugin->getName());
 }
 
-void PluginManager::removePluginsByTypeId(const std::string& type_id)
+void PluginManager::removePluginsByTypeClass(const std::string& type_class)
 {
   for (std::map<std::string, Plugin::Ptr>::iterator itr = Instance()->plugins_by_name.begin(); itr != Instance()->plugins_by_name.end();)
   {
-    if (itr->second->getTypeId() == type_id)
+    if (itr->second->getTypeClass() == type_class)
       removePluginByName(itr++->first);
     else
       itr++;
@@ -476,7 +476,7 @@ bool PluginManager::loadPluginSet(const std::string& name)
 bool PluginManager::hasPlugin(Plugin::Ptr& plugin)
 {
   std::map<std::string, Plugin::Ptr>::iterator itr = Instance()->plugins_by_name.find(plugin->getName());
-  return (itr != Instance()->plugins_by_name.end() && itr->second->getTypeId() == plugin->getTypeId());
+  return (itr != Instance()->plugins_by_name.end() && itr->second->getTypeClass() == plugin->getTypeClass());
 }
 
 bool PluginManager::hasPluginByName(const std::string& name)
@@ -484,11 +484,11 @@ bool PluginManager::hasPluginByName(const std::string& name)
   return Instance()->plugins_by_name.find(name) != Instance()->plugins_by_name.end();
 }
 
-bool PluginManager::hasPluginsByTypeId(const std::string& type_id)
+bool PluginManager::hasPluginsByTypeClass(const std::string& type_class)
 {
   for (std::map<std::string, Plugin::Ptr>::iterator itr = Instance()->plugins_by_name.begin(); itr != Instance()->plugins_by_name.end(); itr++)
   {
-    if (itr->second->getTypeId() == type_id)
+    if (itr->second->getTypeClass() == type_class)
       return true;
   }
 }

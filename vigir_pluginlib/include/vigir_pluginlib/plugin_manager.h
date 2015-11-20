@@ -194,10 +194,10 @@ public:
 
     return !plugins.empty();
   }
-  static bool getPluginsByTypeId(const std::string& type_id, std::vector<Plugin::Ptr>& plugins);
+  static bool getPluginsByTypeClass(const std::string& type_class, std::vector<Plugin::Ptr>& plugins);
 
   /// returns a plugin marked as unique of specific type id
-  static bool getUniquePluginByTypeId(const std::string& type_id, Plugin::Ptr& plugin);
+  static bool getUniquePluginByTypeClass(const std::string& type_class, Plugin::Ptr& plugin);
 
   static void getPluginDescriptions(std::vector<msgs::PluginDescription>& descriptions, msgs::PluginDescription filter = msgs::PluginDescription());
   static void getPluginStates(std::vector<msgs::PluginState>& plugin_states, msgs::PluginDescription filter = msgs::PluginDescription());
@@ -220,7 +220,7 @@ public:
         itr++;
     }
   }
-  static void removePluginsByTypeId(const std::string& type_id);
+  static void removePluginsByTypeClass(const std::string& type_class);
 
   static bool loadPluginSet(const std::vector<msgs::PluginDescription>& plugin_descriptions);
   static bool loadPluginSet(const std::string& name);
@@ -240,7 +240,7 @@ public:
     }
     return false;
   }
-  static bool hasPluginsByTypeId(const std::string& type_id);
+  static bool hasPluginsByTypeClass(const std::string& type_class);
 
   static void loadParams(const vigir_generic_params::ParameterSet& params);
 
