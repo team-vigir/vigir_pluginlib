@@ -471,7 +471,7 @@ bool PluginManager::loadPluginSet(const std::string& name)
   }
   else
   {
-    ROS_ERROR("[PluginManager] loadPluginSet: Loaded plugin set '%s' failed!.", name.c_str());
+    ROS_ERROR("[PluginManager] loadPluginSet: Loaded plugin set '%s' failed!", name.c_str());
     return false;
   }
 }
