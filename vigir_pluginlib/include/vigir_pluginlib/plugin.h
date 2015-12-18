@@ -42,9 +42,7 @@ namespace vigir_pluginlib
 class Plugin
 {
 public:
-  Plugin(const msgs::PluginDescription& description, const vigir_generic_params::ParameterSet& params);
   Plugin(const msgs::PluginDescription& description);
-  Plugin(const std::string& name, const std::string& type_class, const vigir_generic_params::ParameterSet& params);
   Plugin(const std::string& name, const std::string& type_class);
   virtual ~Plugin();
 

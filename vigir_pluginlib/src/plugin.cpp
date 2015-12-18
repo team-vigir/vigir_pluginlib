@@ -2,22 +2,9 @@
 
 namespace vigir_pluginlib
 {
-Plugin::Plugin(const msgs::PluginDescription& description, const vigir_generic_params::ParameterSet& params)
-  : description(description)
-{
-  loadParams(params);
-}
-
 Plugin::Plugin(const msgs::PluginDescription& description)
   : description(description)
 {
-}
-
-Plugin::Plugin(const std::string& name, const std::string& type_class, const vigir_generic_params::ParameterSet& params)
-{
-  description.name.data = name;
-  description.type_class.data = type_class;
-  loadParams(params);
 }
 
 Plugin::Plugin(const std::string& name, const std::string& type_class)
