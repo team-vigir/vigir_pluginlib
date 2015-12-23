@@ -12,7 +12,7 @@ from python_qt_binding import loadUi
 from python_qt_binding.QtCore import Qt, Signal, Slot, QSignalMapper, QObject, QAbstractItemModel
 from python_qt_binding.QtGui import QAbstractItemView, QWidget, QMenu, QAction, QIcon, QHBoxLayout, QVBoxLayout, QComboBox
 
-from vigir_plugin_manager.plugin_tree_model import *
+from vigir_pluginlib_manager.plugin_tree_model import *
 from vigir_pluginlib_msgs.msg import PluginStates, GetPluginDescriptionsAction, GetPluginDescriptionsGoal, GetPluginStatesAction, GetPluginStatesGoal, GetPluginStatesResult, PluginManagementAction, PluginManagementGoal, PluginManagementResult
 
 
@@ -59,7 +59,7 @@ class PluginManagerWidget(QObject):
         # load from ui
         self.plugin_manager_widget = QWidget()
         rp = rospkg.RosPack()
-        ui_file = os.path.join(rp.get_path('vigir_plugin_manager'), 'resource', 'plugin_manager.ui')
+        ui_file = os.path.join(rp.get_path('vigir_pluginlib_manager'), 'resource', 'plugin_manager.ui')
         loadUi(ui_file, self.plugin_manager_widget, {'QWidget': QWidget})
         vbox.addWidget(self.plugin_manager_widget)
 

@@ -259,6 +259,18 @@ protected:
   bool getPluginDescription(const std::string& key, msgs::PluginDescription& description);
   void publishPluginStateUpdate();
 
+  // nodehandle (namespace) to be used
+  ros::NodeHandle nh;
+
+  // class loader
+  PluginLoaderVector class_loader;
+
+  // instantiated plugins
+  std::string loaded_plugin_set;
+  std::map<std::string, Plugin::Ptr> plugins_by_name;
+
+  /// ROS API
+
   // subscriber
   void addPlugin(const msgs::PluginDescriptionConstPtr plugin_description);
   void removePlugin(const msgs::PluginDescriptionConstPtr plugin_description);
@@ -297,16 +309,6 @@ protected:
   boost::shared_ptr<PluginManagementActionServer> add_plugin_as;
   boost::shared_ptr<PluginManagementActionServer> remove_plugin_as;
   boost::shared_ptr<PluginManagementActionServer> load_plugin_set_as;
-
-  // nodehandle (namespace) to be used
-  ros::NodeHandle nh;
-
-  // class loader
-  PluginLoaderVector class_loader;
-
-  // instantiated plugins
-  std::string loaded_plugin_set;
-  std::map<std::string, Plugin::Ptr> plugins_by_name;
 };
 }
 

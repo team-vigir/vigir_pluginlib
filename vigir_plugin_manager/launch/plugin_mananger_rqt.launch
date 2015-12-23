@@ -1,5 +1,0 @@
-<?xml version="1.0"?>
-
-<launch>
-  <node name="plugin_manager_rqt_widget" pkg="vigir_plugin_manager" type="plugin_manager_rqt" output="screen" respawn="true"/>
-</launch>

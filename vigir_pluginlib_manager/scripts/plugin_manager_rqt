@@ -2,7 +2,7 @@
 
 import sys
 
-pkg = 'vigir_plugin_manager'
+pkg = 'vigir_pluginlib_manager'
 widget = 'plugin_manager_widget'
 
 from rqt_gui.main import Main

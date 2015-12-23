@@ -1,5 +1,5 @@
 <library path="src">
-  <class name="PluginManagerPlugin" type="vigir_plugin_manager.plugin_manager_widget.PluginManagerDialog" base_class_type="rqt_gui_py::Plugin">
+  <class name="PluginManagerPlugin" type="vigir_pluginlib_manager.plugin_manager_widget.PluginManagerDialog" base_class_type="rqt_gui_py::Plugin">
     <description>
       Tool for managing all available plugins
     </description>

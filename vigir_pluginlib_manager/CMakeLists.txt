@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 2.8.3)
-project(vigir_plugin_manager)
+project(vigir_pluginlib_manager)
 
 ## Find catkin macros and libraries
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
@@ -76,7 +76,7 @@ catkin_python_setup()
 ## DEPENDS: system dependencies of this project that dependent projects also need
 catkin_package(
 #  INCLUDE_DIRS include
-#  LIBRARIES vigir_plugin_manager
+#  LIBRARIES vigir_pluginlib_manager
   CATKIN_DEPENDS rospy rqt_gui rqt_gui_py vigir_pluginlib_msgs
 #  DEPENDS system_lib
 )
