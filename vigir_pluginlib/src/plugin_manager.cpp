@@ -167,7 +167,7 @@ bool PluginManager::addPlugin(const msgs::PluginDescription& plugin_description)
     }
     if (!p)
     {
-      ROS_ERROR_STREAM("[PluginManager] Plugin with following description is unknown! Check if ClassLoader has been initialized!\n" << description);
+      ROS_ERROR_STREAM("[PluginManager] Plugin with following description is unknown! Check if ClassLoader has been initialized and the plugin has been properly registered!\n" << description);
       return false;
     }
   }
