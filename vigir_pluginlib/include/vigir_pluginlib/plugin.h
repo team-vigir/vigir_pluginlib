@@ -46,6 +46,7 @@ public:
   Plugin(const std::string& name, const std::string& type_class);
   virtual ~Plugin();
 
+  virtual bool initialize(ros::NodeHandle& nh);
   virtual bool initialize(ros::NodeHandle& nh, const vigir_generic_params::ParameterSet& params);
 
   virtual void loadParams(const vigir_generic_params::ParameterSet& params);

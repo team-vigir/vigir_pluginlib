@@ -53,6 +53,9 @@ typedef actionlib::SimpleActionServer<msgs::PluginManagementAction>       Plugin
 class PluginManager
   : boost::noncopyable
 {
+protected:
+  PluginManager();
+
 public:
   typedef std::vector<PluginLoaderBase*> PluginLoaderVector;
 
@@ -88,7 +91,7 @@ public:
     {
       if (loader->getBaseClassType() == base_class)
       {
-        ROS_WARN("[PluginManager] The ClassLoader for plugins of type '%s' has been already added!", base_class.c_str());
+        ROS_DEBUG("[PluginManager] The ClassLoader for plugins of type '%s' has been already added!", base_class.c_str());
         return false;
       }
     }
@@ -161,12 +164,9 @@ public:
     // type specific search
     else
     {
-      std::vector<boost::shared_ptr<T> > plugins;
-      getPluginsByType(plugins);
-
-      for (typename std::vector<boost::shared_ptr<T> >::iterator itr = plugins.begin(); itr != plugins.end(); itr++)
+      for (std::map<std::string, Plugin::Ptr>::iterator itr = Instance()->plugins_by_name.begin(); itr != Instance()->plugins_by_name.end(); itr++)
       {
-        plugin = boost::dynamic_pointer_cast<T>(*itr);
+        plugin = boost::dynamic_pointer_cast<T>(itr->second);
         if (plugin)
           return true;
       }
@@ -249,10 +249,7 @@ public:
   typedef boost::shared_ptr<const PluginManager> ConstPtr;
 
 protected:
-  PluginManager();
-
-  static PluginManager::Ptr& Instance();
-
+  static PluginManager::Ptr Instance();
   static PluginManager::Ptr singelton;
 
   // helper

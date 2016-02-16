@@ -21,7 +21,7 @@ PluginManager::~PluginManager()
   class_loader.clear();
 }
 
-PluginManager::Ptr& PluginManager::Instance()
+PluginManager::Ptr PluginManager::Instance()
 {
    if (!singelton)
       singelton.reset(new PluginManager());
@@ -184,7 +184,8 @@ bool PluginManager::addPlugin(const msgs::PluginDescription& plugin_description)
 bool PluginManager::addPluginByName(const std::string& name)
 {
   msgs::PluginDescription description;
-  return autocompletePluginDescriptionByName(name, description) && addPlugin(description);
+  description.name.data = name;
+  return addPlugin(description);
 }
 
 void PluginManager::addPlugin(Plugin* plugin)
@@ -455,9 +456,11 @@ bool PluginManager::loadPluginSet(const std::string& name)
       if (d.hasMember("import"))
       {
         import_name = static_cast<std::string>(d["import"]);
+        // auto complete remaining empty description fields by global definition of 'imported_name' plugin if exists
         autocompletePluginDescriptionByName(import_name, description);
       }
     }
+    // lookup remaining empty description fields by global definition if exists
     autocompletePluginDescriptionByName(description.name.data, description);
 
     plugin_descriptions.push_back(description);

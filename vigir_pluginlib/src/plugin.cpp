@@ -17,7 +17,7 @@ Plugin::~Plugin()
 {
 }
 
-bool Plugin::initialize(ros::NodeHandle& nh, const vigir_generic_params::ParameterSet& params)
+bool Plugin::initialize(ros::NodeHandle& nh)
 {
   root_nh = nh;
 
@@ -31,8 +31,15 @@ bool Plugin::initialize(ros::NodeHandle& nh, const vigir_generic_params::Paramet
     ROS_DEBUG("[Plugin] initialize: No private namespace found for plugin with name '%s'. Defaulting to root namespace '%s'.", getName().c_str(), root_nh.getNamespace().c_str());
   }
 
-  loadParams(params);
   return true;
+}
+
+bool Plugin::initialize(ros::NodeHandle& nh, const vigir_generic_params::ParameterSet& params)
+{
+  bool result = initialize(nh);
+
+  loadParams(params);
+  return result;
 }
 
 void Plugin::loadParams(const vigir_generic_params::ParameterSet& /*params*/)
