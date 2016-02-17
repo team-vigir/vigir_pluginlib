@@ -179,7 +179,7 @@ public:
 
   static bool getPluginByName(const std::string& name, Plugin::Ptr& plugin);
 
-  /// return all plugins derived by class T in alphabetical order (name)
+  /// returns all plugins derived by class T in alphabetical order (name)
   template<typename T>
   static bool getPluginsByType(std::vector<boost::shared_ptr<T> >& plugins)
   {
@@ -190,6 +190,21 @@ public:
       boost::shared_ptr<T> plugin = boost::dynamic_pointer_cast<T>(itr->second);
       if (plugin)
         plugins.push_back(plugin);
+    }
+
+    return !plugins.empty();
+  }
+  /// returns all plugins derived by class T as map
+  template<typename T>
+  static bool getPluginsByType(std::map<std::string, boost::shared_ptr<T> >& plugins)
+  {
+    plugins.clear();
+
+    for (std::map<std::string, Plugin::Ptr>::iterator itr = Instance()->plugins_by_name.begin(); itr != Instance()->plugins_by_name.end(); itr++)
+    {
+      boost::shared_ptr<T> plugin = boost::dynamic_pointer_cast<T>(itr->second);
+      if (plugin)
+        plugins[itr->first] = plugin;
     }
 
     return !plugins.empty();
