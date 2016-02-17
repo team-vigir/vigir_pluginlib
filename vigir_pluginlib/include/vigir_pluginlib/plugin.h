@@ -46,7 +46,10 @@ public:
   Plugin(const std::string& name, const std::string& type_class);
   virtual ~Plugin();
 
-  virtual bool initialize(ros::NodeHandle& nh);
+  /**
+   * @brief Initialization of plugin specific features.
+   * @return true when initialization was successful
+   */
   virtual bool initialize(ros::NodeHandle& nh, const vigir_generic_params::ParameterSet& params);
 
   virtual void loadParams(const vigir_generic_params::ParameterSet& params);
@@ -64,7 +67,7 @@ public:
    * new one. If a plugin can live in coexistence with others plugins
    * with the the same type_class, override this method to return false.
    **/
-  virtual bool isUnique() const;
+  virtual bool isUnique() const { return true; }
 
   // typedefs
   typedef boost::shared_ptr<Plugin> Ptr;
@@ -82,7 +85,12 @@ protected:
 
     val = def;
     if (!no_warnings)
-      ROS_WARN("[%s]: '%s' plugin parameter is missing in namespace '%s'!", this->getName().c_str(), name.c_str(), description.param_namespace.data.c_str());
+    {
+      if (description.param_namespace.data.empty())
+        ROS_WARN("[%s]: No plugin parameters defined!", this->getName().c_str());
+      else
+        ROS_WARN("[%s]: '%s' plugin parameter is missing in namespace '%s'!", this->getName().c_str(), name.c_str(), description.param_namespace.data.c_str());
+    }
     return false;
   }
 
