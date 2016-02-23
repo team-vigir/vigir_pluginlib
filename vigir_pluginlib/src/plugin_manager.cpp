@@ -36,6 +36,7 @@ void PluginManager::initialize(ros::NodeHandle& nh)
   Instance()->add_plugin_sub = nh.subscribe("plugin_manager/add_plugin", 1, &PluginManager::addPlugin, Instance().get());
   Instance()->remove_plugin_sub = nh.subscribe("plugin_manager/remove_plugin", 1, &PluginManager::removePlugin, Instance().get());
 
+  // publish topics
   Instance()->plugin_states_pub = nh.advertise<msgs::PluginStates>("plugin_manager/plugin_states_update", 1);
 
   // start own services

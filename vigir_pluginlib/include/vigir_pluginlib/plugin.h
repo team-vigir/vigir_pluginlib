@@ -77,21 +77,31 @@ public:
 
 protected:
   template<typename T>
-  bool getPluginParam(const std::string& name, T& val, const T& def = T(), bool no_warnings = false) const
+  bool getPluginParam(const std::string& name, T& val, const T& def = T(), bool ignore_warnings = false) const
   {
     std::string name_ns = description.param_namespace.data + std::string("/") + name;
     if (root_nh.hasParam(name_ns) && root_nh.getParam(name_ns, val))
       return true;
-
-    val = def;
-    if (!no_warnings)
+    else
     {
-      if (description.param_namespace.data.empty())
-        ROS_WARN("[%s]: No plugin parameters defined!", this->getName().c_str());
-      else
-        ROS_WARN("[%s]: '%s' plugin parameter is missing in namespace '%s'!", this->getName().c_str(), name.c_str(), description.param_namespace.data.c_str());
+      val = def;
+      if (!ignore_warnings)
+      {
+        if (description.param_namespace.data.empty())
+          ROS_WARN("[%s]: No plugin parameters defined!", this->getName().c_str());
+        else
+          ROS_WARN("[%s]: '%s' plugin parameter is missing in namespace '%s'!", this->getName().c_str(), name.c_str(), description.param_namespace.data.c_str());
+      }
+      return false;
     }
-    return false;
+  }
+
+  template<typename T>
+  T pluginParam(const std::string& name, const T& def = T(), bool ignore_warnings = false) const
+  {
+    T result;
+    getPluginParam(name, result, def, ignore_warnings);
+    return result;
   }
 
   ros::NodeHandle root_nh;
