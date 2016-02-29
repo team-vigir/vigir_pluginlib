@@ -43,20 +43,20 @@ class PluginTreeModel(QtCore.QAbstractItemModel):
                 return 'Name'
         return None
 
-    def insertRows(self, position, count, parent=QtCore.QModelIndex()):
+    def insertRows(self, row, count, parent=QtCore.QModelIndex()):
         parent_item = self.getItem(parent)
 
-        self.beginInsertRows(parent, position, position + count - 1)
-        success = parent_item.insertChildren(position, count)
+        self.beginInsertRows(parent, row, row + count - 1)
+        success = parent_item.insertChildren(row, count)
         self.endInsertRows()
 
         return success
 
-    def removeRows(self, position, count, parent=QtCore.QModelIndex()):
+    def removeRows(self, row, count, parent=QtCore.QModelIndex()):
         parent_item = self.getItem(parent)
 
-        self.beginRemoveRows(parent, position, position + count - 1)
-        success = parent_item.removeChildren(position, count)
+        self.beginRemoveRows(parent, row, row + count - 1)
+        success = parent_item.removeChildren(row, count)
         self.endRemoveRows()
 
         # remove empty branch
@@ -125,7 +125,7 @@ class PluginTreeModel(QtCore.QAbstractItemModel):
             if not state.description.type_class.data:
                 state.description.type_class.data = 'Unknown'
 
-        # collect entries which does not existing in recent update anymore
+        # collect entries which does not exist in recent update anymore
         rows = []
         for branch_item in self._root_item.childs():
             branch_index = self.index(branch_item.childNumber(), 0)
