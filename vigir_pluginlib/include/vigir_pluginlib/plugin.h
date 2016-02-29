@@ -79,18 +79,26 @@ protected:
   template<typename T>
   bool getPluginParam(const std::string& name, T& val, const T& def = T(), bool ignore_warnings = false) const
   {
-    std::string name_ns = description.param_namespace.data + std::string("/") + name;
-    if (root_nh.hasParam(name_ns) && root_nh.getParam(name_ns, val))
+    std::string name_private_ns = description.private_param_ns.data + std::string("/") + name;
+    std::string name_public_ns = description.public_param_ns.data + std::string("/") + name;
+    if (root_nh.hasParam(name_private_ns) && root_nh.getParam(name_private_ns, val))
+      return true;
+    else if (root_nh.hasParam(name_public_ns) && root_nh.getParam(name_public_ns, val))
       return true;
     else
     {
       val = def;
       if (!ignore_warnings)
       {
-        if (description.param_namespace.data.empty())
+        if (description.private_param_ns.data.empty() && description.public_param_ns.data.empty())
           ROS_WARN("[%s]: No plugin parameters defined!", this->getName().c_str());
         else
-          ROS_WARN("[%s]: '%s' plugin parameter is missing in namespace '%s'!", this->getName().c_str(), name.c_str(), description.param_namespace.data.c_str());
+        {
+          std::string plugin_ns = "/" + vigir_generic_params::strip_const(root_nh.getNamespace(), '/');
+          ROS_WARN("[%s]: '%s' plugin parameter is missing in namespaces '%s...'", this->getName().c_str(), name.c_str(), plugin_ns.c_str());
+          ROS_WARN("    private: '...%s'", ("/" + description.private_param_ns.data).c_str());
+          ROS_WARN("    public: '...%s'", ("/" + description.public_param_ns.data).c_str());
+        }
       }
       return false;
     }

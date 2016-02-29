@@ -86,8 +86,8 @@ bool PluginManager::autocompletePluginDescriptionByName(const std::string& name,
       if (plugin_description.base_class.data.empty())
         plugin_nh.param("base_class", plugin_description.base_class.data, std::string());
 
-      if (plugin_description.param_namespace.data.empty() && plugin_nh.hasParam("params"))
-        plugin_description.param_namespace.data = name + std::string("/params");
+      if (plugin_description.public_param_ns.data.empty() && plugin_nh.hasParam("params"))
+        plugin_description.public_param_ns.data = name + std::string("/params");
 
       return true;
     }
@@ -450,8 +450,7 @@ bool PluginManager::loadPluginSet(const std::string& name)
         description.base_class_package.data = static_cast<std::string>(d["base_class_package"]);
       if (d.hasMember("base_class"))
         description.base_class.data = static_cast<std::string>(d["base_class"]);
-      if (d.hasMember("params"))
-        description.param_namespace.data = prefix + std::string("/") + description.name.data + std::string("/params");
+      description.private_param_ns.data = prefix + std::string("/") + description.name.data + std::string("/params");
 
       std::string import_name;
       if (d.hasMember("import"))
