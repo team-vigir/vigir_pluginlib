@@ -66,7 +66,7 @@ public:
   std::string getBaseClassPackage() const;
 
 protected:
-  std::string base_class_package;
+  std::string base_class_package_;
 };
 }
 

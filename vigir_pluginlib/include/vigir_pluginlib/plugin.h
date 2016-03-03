@@ -42,6 +42,10 @@ namespace vigir_pluginlib
 class Plugin
 {
 public:
+  // typedefs
+  typedef boost::shared_ptr<Plugin> Ptr;
+  typedef boost::shared_ptr<const Plugin> ConstPtr;
+
   Plugin(const msgs::PluginDescription& description);
   Plugin(const std::string& name, const std::string& type_class);
   virtual ~Plugin();
@@ -69,35 +73,31 @@ public:
    **/
   virtual bool isUnique() const { return true; }
 
-  // typedefs
-  typedef boost::shared_ptr<Plugin> Ptr;
-  typedef boost::shared_ptr<const Plugin> ConstPtr;
-
   friend class PluginManager;
 
 protected:
   template<typename T>
   bool getPluginParam(const std::string& name, T& val, const T& def = T(), bool ignore_warnings = false) const
   {
-    std::string name_private_ns = description.private_param_ns.data + std::string("/") + name;
-    std::string name_public_ns = description.public_param_ns.data + std::string("/") + name;
-    if (root_nh.hasParam(name_private_ns) && root_nh.getParam(name_private_ns, val))
+    std::string name_private_ns = description_.private_param_ns.data + std::string("/") + name;
+    std::string name_public_ns = description_.public_param_ns.data + std::string("/") + name;
+    if (root_nh_.hasParam(name_private_ns) && root_nh_.getParam(name_private_ns, val))
       return true;
-    else if (root_nh.hasParam(name_public_ns) && root_nh.getParam(name_public_ns, val))
+    else if (root_nh_.hasParam(name_public_ns) && root_nh_.getParam(name_public_ns, val))
       return true;
     else
     {
       val = def;
       if (!ignore_warnings)
       {
-        if (description.private_param_ns.data.empty() && description.public_param_ns.data.empty())
+        if (description_.private_param_ns.data.empty() && description_.public_param_ns.data.empty())
           ROS_WARN("[%s]: No plugin parameters defined!", this->getName().c_str());
         else
         {
-          std::string plugin_ns = "/" + vigir_generic_params::strip_const(root_nh.getNamespace(), '/');
+          std::string plugin_ns = "/" + vigir_generic_params::strip_const(root_nh_.getNamespace(), '/');
           ROS_WARN("[%s]: '%s' plugin parameter is missing in namespaces '%s...'", this->getName().c_str(), name.c_str(), plugin_ns.c_str());
-          ROS_WARN("    private: '...%s'", ("/" + description.private_param_ns.data).c_str());
-          ROS_WARN("    public: '...%s'", ("/" + description.public_param_ns.data).c_str());
+          ROS_WARN("    private: '...%s'", ("/" + description_.private_param_ns.data).c_str());
+          ROS_WARN("    public: '...%s'", ("/" + description_.public_param_ns.data).c_str());
         }
       }
       return false;
@@ -112,11 +112,11 @@ protected:
     return result;
   }
 
-  ros::NodeHandle root_nh;
-  ros::NodeHandle plugin_nh;
+  ros::NodeHandle root_nh_;
+  ros::NodeHandle plugin_nh_;
 
 private:
-  msgs::PluginDescription description;
+  msgs::PluginDescription description_;
 };
 }
 

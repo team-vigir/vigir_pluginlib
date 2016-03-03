@@ -3,14 +3,14 @@
 namespace vigir_pluginlib
 {
 Plugin::Plugin(const msgs::PluginDescription& description)
-  : description(description)
+  : description_(description)
 {
 }
 
 Plugin::Plugin(const std::string& name, const std::string& type_class)
 {
-  description.name.data = name;
-  description.type_class.data = type_class;
+  description_.name.data = name;
+  description_.type_class.data = type_class;
 }
 
 Plugin::~Plugin()
@@ -21,12 +21,12 @@ bool Plugin::initialize(ros::NodeHandle& nh, const vigir_generic_params::Paramet
 {
   try
   {
-    plugin_nh = ros::NodeHandle(nh, getName().c_str());
+    plugin_nh_ = ros::NodeHandle(nh, getName().c_str());
   }
   catch (std::exception& /*e*/)
   {
-    plugin_nh = nh;
-    ROS_DEBUG("[Plugin] initialize: No private namespace found for plugin with name '%s'. Defaulting to root namespace '%s'.", getName().c_str(), root_nh.getNamespace().c_str());
+    plugin_nh_ = nh;
+    ROS_DEBUG("[Plugin] initialize: No private namespace found for plugin with name '%s'. Defaulting to root namespace '%s'.", getName().c_str(), root_nh_.getNamespace().c_str());
   }
 
   loadParams(params);
@@ -40,31 +40,31 @@ void Plugin::loadParams(const vigir_generic_params::ParameterSet& /*params*/)
 
 const msgs::PluginDescription& Plugin::getDescription() const
 {
-  return description;
+  return description_;
 }
 
 const std::string& Plugin::getName() const
 {
-  return description.name.data;
+  return description_.name.data;
 }
 
 const std::string& Plugin::getTypeClassPackage() const
 {
-  return description.type_class_package.data;
+  return description_.type_class_package.data;
 }
 
 const std::string& Plugin::getTypeClass() const
 {
-  return description.type_class.data;
+  return description_.type_class.data;
 }
 
 const std::string& Plugin::getBaseClassPackage() const
 {
-  return description.base_class_package.data;
+  return description_.base_class_package.data;
 }
 
 const std::string& Plugin::getBaseClass() const
 {
-  return description.base_class.data;
+  return description_.base_class.data;
 }
 }

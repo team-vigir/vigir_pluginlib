@@ -46,19 +46,28 @@
 
 namespace vigir_pluginlib
 {
-typedef actionlib::SimpleActionServer<msgs::GetPluginDescriptionsAction>  GetPluginDescriptionsActionServer;
-typedef actionlib::SimpleActionServer<msgs::GetPluginStatesAction>        GetPluginStatesActionServer;
-typedef actionlib::SimpleActionServer<msgs::PluginManagementAction>       PluginManagementActionServer;
-
 class PluginManager
   : boost::noncopyable
 {
-protected:
-  PluginManager();
-
 public:
+  // typedefs
+  typedef boost::shared_ptr<PluginManager> Ptr;
+  typedef boost::shared_ptr<const PluginManager> ConstPtr;
+
   typedef std::vector<PluginLoaderBase*> PluginLoaderVector;
 
+protected:
+  typedef actionlib::SimpleActionServer<msgs::GetPluginDescriptionsAction>  GetPluginDescriptionsActionServer;
+  typedef actionlib::SimpleActionServer<msgs::GetPluginStatesAction>        GetPluginStatesActionServer;
+  typedef actionlib::SimpleActionServer<msgs::PluginManagementAction>       PluginManagementActionServer;
+
+  static PluginManager::Ptr singelton_;
+
+  PluginManager();
+
+  static PluginManager::Ptr Instance();
+
+public:
   ~PluginManager();
 
   /**
@@ -87,7 +96,7 @@ public:
   static bool addPluginClassLoader(const std::string& package, const std::string& base_class, const std::string& attrib_name = std::string("plugin"), const std::vector<std::string>& plugin_xml_paths = std::vector<std::string>())
   {
     // check for duplicate
-    for (PluginLoaderBase* loader : Instance()->class_loader)
+    for (PluginLoaderBase* loader : Instance()->class_loader_)
     {
       if (loader->getBaseClassType() == base_class)
       {
@@ -99,7 +108,7 @@ public:
     try
     {
       PluginLoader<PluginBaseClass>* loader = new PluginLoader<PluginBaseClass>(package, base_class, attrib_name, plugin_xml_paths);
-      Instance()->class_loader.push_back(loader);
+      Instance()->class_loader_.push_back(loader);
       ROS_INFO("[PluginManager] Added ClassLoader for plugins of type '%s'.", base_class.c_str());
       ROS_DEBUG("  Declared classes:");
       for (const std::string s : loader->getDeclaredClasses())
@@ -164,7 +173,7 @@ public:
     // type specific search
     else
     {
-      for (std::map<std::string, Plugin::Ptr>::iterator itr = Instance()->plugins_by_name.begin(); itr != Instance()->plugins_by_name.end(); itr++)
+      for (std::map<std::string, Plugin::Ptr>::iterator itr = Instance()->plugins_by_name_.begin(); itr != Instance()->plugins_by_name_.end(); itr++)
       {
         plugin = boost::dynamic_pointer_cast<T>(itr->second);
         if (plugin)
@@ -185,7 +194,7 @@ public:
   {
     plugins.clear();
 
-    for (std::map<std::string, Plugin::Ptr>::iterator itr = Instance()->plugins_by_name.begin(); itr != Instance()->plugins_by_name.end(); itr++)
+    for (std::map<std::string, Plugin::Ptr>::iterator itr = Instance()->plugins_by_name_.begin(); itr != Instance()->plugins_by_name_.end(); itr++)
     {
       boost::shared_ptr<T> plugin = boost::dynamic_pointer_cast<T>(itr->second);
       if (plugin)
@@ -200,7 +209,7 @@ public:
   {
     plugins.clear();
 
-    for (std::map<std::string, Plugin::Ptr>::iterator itr = Instance()->plugins_by_name.begin(); itr != Instance()->plugins_by_name.end(); itr++)
+    for (std::map<std::string, Plugin::Ptr>::iterator itr = Instance()->plugins_by_name_.begin(); itr != Instance()->plugins_by_name_.end(); itr++)
     {
       boost::shared_ptr<T> plugin = boost::dynamic_pointer_cast<T>(itr->second);
       if (plugin)
@@ -226,7 +235,7 @@ public:
   template<typename T>
   static void removePluginsByType()
   {
-    for (std::map<std::string, Plugin::Ptr>::iterator itr = Instance()->plugins_by_name.begin(); itr != Instance()->plugins_by_name.end();)
+    for (std::map<std::string, Plugin::Ptr>::iterator itr = Instance()->plugins_by_name_.begin(); itr != Instance()->plugins_by_name_.end();)
     {
       boost::shared_ptr<T> plugin = boost::dynamic_pointer_cast<T>(itr->second);
       if (plugin)
@@ -247,7 +256,7 @@ public:
   template<typename T>
   static bool hasPluginsByType()
   {
-    for (std::map<std::string, Plugin::Ptr>::iterator itr = Instance()->plugins_by_name.begin(); itr != Instance()->plugins_by_name.end(); itr++)
+    for (std::map<std::string, Plugin::Ptr>::iterator itr = Instance()->plugins_by_name_.begin(); itr != Instance()->plugins_by_name_.end(); itr++)
     {
       boost::shared_ptr<T> plugin = boost::dynamic_pointer_cast<T>(itr->second);
       if (plugin)
@@ -259,27 +268,20 @@ public:
 
   static void loadParams(const vigir_generic_params::ParameterSet& params);
 
-  // typedefs
-  typedef boost::shared_ptr<PluginManager> Ptr;
-  typedef boost::shared_ptr<const PluginManager> ConstPtr;
-
 protected:
-  static PluginManager::Ptr Instance();
-  static PluginManager::Ptr singelton;
-
   // helper
   bool getPluginDescription(const std::string& key, msgs::PluginDescription& description);
   void publishPluginStateUpdate();
 
   // nodehandle (namespace) to be used
-  ros::NodeHandle nh;
+  ros::NodeHandle nh_;
 
   // class loader
-  PluginLoaderVector class_loader;
+  PluginLoaderVector class_loader_;
 
   // instantiated plugins
-  std::string loaded_plugin_set;
-  std::map<std::string, Plugin::Ptr> plugins_by_name;
+  std::string loaded_plugin_set_;
+  std::map<std::string, Plugin::Ptr> plugins_by_name_;
 
   /// ROS API
 
@@ -302,25 +304,25 @@ protected:
   void loadPluginSetAction(const msgs::PluginManagementGoalConstPtr goal);
 
   // subscriber
-  ros::Subscriber add_plugin_sub;
-  ros::Subscriber remove_plugin_sub;
+  ros::Subscriber add_plugin_sub_;
+  ros::Subscriber remove_plugin_sub_;
 
   // publisher
-  ros::Publisher plugin_states_pub;
+  ros::Publisher plugin_states_pub_;
 
   // service servers
-  ros::ServiceServer get_plugin_descriptions_srv;
-  ros::ServiceServer get_plugin_states_srv;
-  ros::ServiceServer add_plugin_srv;
-  ros::ServiceServer remove_plugin_srv;
-  ros::ServiceServer load_plugin_set_srv;
+  ros::ServiceServer get_plugin_descriptions_srv_;
+  ros::ServiceServer get_plugin_states_srv_;
+  ros::ServiceServer add_plugin_srv_;
+  ros::ServiceServer remove_plugin_srv_;
+  ros::ServiceServer load_plugin_set_srv_;
 
   // action servers
-  boost::shared_ptr<GetPluginDescriptionsActionServer> get_plugin_descriptions_as;
-  boost::shared_ptr<GetPluginStatesActionServer> get_plugin_states_as;
-  boost::shared_ptr<PluginManagementActionServer> add_plugin_as;
-  boost::shared_ptr<PluginManagementActionServer> remove_plugin_as;
-  boost::shared_ptr<PluginManagementActionServer> load_plugin_set_as;
+  boost::shared_ptr<GetPluginDescriptionsActionServer> get_plugin_descriptions_as_;
+  boost::shared_ptr<GetPluginStatesActionServer> get_plugin_states_as_;
+  boost::shared_ptr<PluginManagementActionServer> add_plugin_as_;
+  boost::shared_ptr<PluginManagementActionServer> remove_plugin_as_;
+  boost::shared_ptr<PluginManagementActionServer> load_plugin_set_as_;
 };
 }
 
