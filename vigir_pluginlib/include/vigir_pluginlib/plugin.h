@@ -97,7 +97,7 @@ protected:
    * @brief Updates plugin description
    * @param description new description
    */
-  void updateDescription(const msgs::PluginDescription& description);
+  virtual void updateDescription(const msgs::PluginDescription& description);
 
   /**
    * @brief Retrieves parameter from rosparam server
