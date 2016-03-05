@@ -2,15 +2,43 @@
 
 namespace vigir_pluginlib
 {
+#ifdef __GNUG__
+#include <cstdlib>
+#include <memory>
+#include <cxxabi.h>
+
+// enable c++11 by passing the flag -std=c++11 to g++
+std::string demangle(const char* name)
+{
+  int status = -4; // some arbitrary value to eliminate the compiler warning
+
+  std::unique_ptr<char, void(*)(void*)> res
+  {
+    abi::__cxa_demangle(name, NULL, NULL, &status),
+    std::free
+  };
+
+  return (status==0) ? res.get() : name ;
+}
+
+#else
+
+// does nothing if not g++
+std::string demangle(const char* name)
+{
+  return name;
+}
+
+#endif
+
 Plugin::Plugin(const msgs::PluginDescription& description)
   : description_(description)
 {
 }
 
-Plugin::Plugin(const std::string& name, const std::string& type_class)
+Plugin::Plugin(const std::string& name)
 {
   description_.name.data = name;
-  description_.type_class.data = type_class;
 }
 
 Plugin::~Plugin()
@@ -40,6 +68,8 @@ void Plugin::loadParams(const vigir_generic_params::ParameterSet& /*params*/)
 
 const msgs::PluginDescription& Plugin::getDescription() const
 {
+  if (description_.type_class.data.empty())
+    (const_cast<Plugin*>(this))->description_.type_class.data = _typeClass(this);
   return description_;
 }
 
@@ -55,6 +85,8 @@ const std::string& Plugin::getTypeClassPackage() const
 
 const std::string& Plugin::getTypeClass() const
 {
+  if (description_.type_class.data.empty())
+    (const_cast<Plugin*>(this))->description_.type_class.data = _typeClass(this);
   return description_.type_class.data;
 }
 

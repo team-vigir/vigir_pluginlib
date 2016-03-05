@@ -39,6 +39,8 @@
 
 namespace vigir_pluginlib
 {
+std::string demangle(const char* name);
+
 class Plugin
 {
 public:
@@ -47,7 +49,7 @@ public:
   typedef boost::shared_ptr<const Plugin> ConstPtr;
 
   Plugin(const msgs::PluginDescription& description);
-  Plugin(const std::string& name, const std::string& type_class);
+  Plugin(const std::string& name);
   virtual ~Plugin();
 
   /**
@@ -58,10 +60,18 @@ public:
 
   virtual void loadParams(const vigir_generic_params::ParameterSet& params);
 
+  /**
+   * Used for automatically generate type ids for data types. Override _typeId()
+   * function to use custom type ids for derived data types!
+   * DO NOT OVERRIDE THIS METHOD! This wrapper prevents wrong usage, e.g. A::_typeId<B>().
+   */
+  template <typename T>
+  inline static std::string getTypeClass() { return T::template _typeClass<T>(); }
+  const std::string& getTypeClass() const;
+
   const msgs::PluginDescription& getDescription() const;
   const std::string& getName() const;
   const std::string& getTypeClassPackage() const;
-  const std::string& getTypeClass() const;
   const std::string& getBaseClassPackage() const;
   const std::string& getBaseClass() const;
 
@@ -76,6 +86,13 @@ public:
   friend class PluginManager;
 
 protected:
+  /**
+   * Used internally for automatically generate type ids for data types. Override this
+   * function to use custom type ids for derived data types!
+   */
+  template <typename T>
+  inline static std::string _typeClass(T* t = nullptr) { return demangle(t ? typeid(*t).name() : typeid(T).name()); }
+
   template<typename T>
   bool getPluginParam(const std::string& name, T& val, const T& def = T(), bool ignore_warnings = false) const
   {
