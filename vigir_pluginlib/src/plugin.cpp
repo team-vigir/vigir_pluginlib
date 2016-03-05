@@ -1,5 +1,7 @@
 #include <vigir_pluginlib/plugin.h>
 
+
+
 namespace vigir_pluginlib
 {
 #ifdef __GNUG__
@@ -10,7 +12,7 @@ namespace vigir_pluginlib
 // enable c++11 by passing the flag -std=c++11 to g++
 std::string demangle(const char* name)
 {
-  int status = -4; // some arbitrary value to eliminate the compiler warning
+  int status = 0;
 
   std::unique_ptr<char, void(*)(void*)> res
   {
@@ -31,14 +33,14 @@ std::string demangle(const char* name)
 
 #endif
 
-Plugin::Plugin(const msgs::PluginDescription& description)
-  : description_(description)
+Plugin::Plugin(const std::string& name, const std::string& type_class_package, const std::string& base_class_package, const std::string& base_class)
 {
-}
-
-Plugin::Plugin(const std::string& name)
-{
-  description_.name.data = name;
+  msgs::PluginDescription description;
+  description.name.data = name;
+  description.type_class_package.data = type_class_package;
+  description.base_class_package.data = base_class_package;
+  description.base_class.data = base_class;
+  updateDescription(description);
 }
 
 Plugin::~Plugin()
@@ -47,29 +49,18 @@ Plugin::~Plugin()
 
 bool Plugin::initialize(ros::NodeHandle& nh, const vigir_generic_params::ParameterSet& params)
 {
-  try
-  {
-    plugin_nh_ = ros::NodeHandle(nh, getName().c_str());
-  }
-  catch (std::exception& /*e*/)
-  {
-    plugin_nh_ = nh;
-    ROS_DEBUG("[Plugin] initialize: No private namespace found for plugin with name '%s'. Defaulting to root namespace '%s'.", getName().c_str(), root_nh_.getNamespace().c_str());
-  }
-
   loadParams(params);
 
   return true;
 }
 
-void Plugin::loadParams(const vigir_generic_params::ParameterSet& /*params*/)
-{
-}
-
 const msgs::PluginDescription& Plugin::getDescription() const
 {
   if (description_.type_class.data.empty())
+  {
     (const_cast<Plugin*>(this))->description_.type_class.data = _typeClass(this);
+    (const_cast<Plugin*>(this))->updateDescription(description_);
+  }
   return description_;
 }
 
@@ -86,7 +77,10 @@ const std::string& Plugin::getTypeClassPackage() const
 const std::string& Plugin::getTypeClass() const
 {
   if (description_.type_class.data.empty())
+  {
     (const_cast<Plugin*>(this))->description_.type_class.data = _typeClass(this);
+    (const_cast<Plugin*>(this))->updateDescription(description_);
+  }
   return description_.type_class.data;
 }
 
@@ -98,5 +92,12 @@ const std::string& Plugin::getBaseClassPackage() const
 const std::string& Plugin::getBaseClass() const
 {
   return description_.base_class.data;
+}
+
+void Plugin::updateDescription(const msgs::PluginDescription& description)
+{
+  description_ = description;
+
+  rosparam_handler_.reset(new vigir_generic_params::RosparamHandler(description_.private_param_ns.data + "/params", description_.public_param_ns.data + "/params"));
 }
 }

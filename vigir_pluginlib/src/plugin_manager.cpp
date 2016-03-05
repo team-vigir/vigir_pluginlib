@@ -86,8 +86,8 @@ bool PluginManager::autocompletePluginDescriptionByName(const std::string& name,
       if (plugin_description.base_class.data.empty())
         plugin_nh.param("base_class", plugin_description.base_class.data, std::string());
 
-      if (plugin_description.public_param_ns.data.empty() && plugin_nh.hasParam("params"))
-        plugin_description.public_param_ns.data = name + std::string("/params");
+      if (plugin_description.public_param_ns.data.empty())
+        plugin_description.public_param_ns.data = name;
 
       return true;
     }
@@ -160,7 +160,7 @@ bool PluginManager::addPlugin(const msgs::PluginDescription& plugin_description)
           if (description.name.data.empty())
             description.name.data = p->getName();
 
-          p->description_ = description;
+          p->updateDescription(description);
         }
         else
           ROS_WARN("[PluginManager] Duplicate source for plugin '%s' found in ClassLoader '%s'!\nPlugin was already instanciated from ClassLoader '%s'", description.type_class.data.c_str(), loader->getBaseClassType().c_str(), _base_class.c_str());
@@ -450,7 +450,7 @@ bool PluginManager::loadPluginSet(const std::string& name)
         description.base_class_package.data = static_cast<std::string>(d["base_class_package"]);
       if (d.hasMember("base_class"))
         description.base_class.data = static_cast<std::string>(d["base_class"]);
-      description.private_param_ns.data = prefix + std::string("/") + description.name.data + std::string("/params");
+      description.private_param_ns.data = prefix + std::string("/") + description.name.data;
 
       std::string import_name;
       if (d.hasMember("import"))

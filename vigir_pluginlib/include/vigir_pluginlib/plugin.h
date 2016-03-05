@@ -1,5 +1,5 @@
 //=================================================================================================
-// Copyright (c) 2015, Alexander Stumpf, TU Darmstadt
+// Copyright (c) 2016, Alexander Stumpf, TU Darmstadt
 // All rights reserved.
 
 // Redistribution and use in source and binary forms, with or without
@@ -32,6 +32,7 @@
 #include <ros/ros.h>
 
 #include <vigir_generic_params/parameter_manager.h>
+#include <vigir_generic_params/rosparam_handler.h>
 
 #include <vigir_pluginlib_msgs/pluginlib_msgs.h>
 
@@ -48,8 +49,7 @@ public:
   typedef boost::shared_ptr<Plugin> Ptr;
   typedef boost::shared_ptr<const Plugin> ConstPtr;
 
-  Plugin(const msgs::PluginDescription& description);
-  Plugin(const std::string& name);
+  Plugin(const std::string& name, const std::string& type_class_package = std::string(), const std::string& base_class_package = std::string(), const std::string& base_class = std::string());
   virtual ~Plugin();
 
   /**
@@ -58,7 +58,7 @@ public:
    */
   virtual bool initialize(ros::NodeHandle& nh, const vigir_generic_params::ParameterSet& params);
 
-  virtual void loadParams(const vigir_generic_params::ParameterSet& params);
+  virtual void loadParams(const vigir_generic_params::ParameterSet& /*params*/) {}
 
   /**
    * Used for automatically generate type ids for data types. Override _typeId()
@@ -93,34 +93,33 @@ protected:
   template <typename T>
   inline static std::string _typeClass(T* t = nullptr) { return demangle(t ? typeid(*t).name() : typeid(T).name()); }
 
+  /**
+   * @brief Updates plugin description
+   * @param description new description
+   */
+  void updateDescription(const msgs::PluginDescription& description);
+
+  /**
+   * @brief Retrieves parameter from rosparam server
+   * @param name name of parameter
+   * @param val [out] return variable for parameter
+   * @param def default value
+   * @param ignore_warnings if true no warnings will be printed out when param was not present
+   * @return true when parameter was found at rosparam
+   */
   template<typename T>
   bool getPluginParam(const std::string& name, T& val, const T& def = T(), bool ignore_warnings = false) const
   {
-    std::string name_private_ns = description_.private_param_ns.data + std::string("/") + name;
-    std::string name_public_ns = description_.public_param_ns.data + std::string("/") + name;
-    if (root_nh_.hasParam(name_private_ns) && root_nh_.getParam(name_private_ns, val))
-      return true;
-    else if (root_nh_.hasParam(name_public_ns) && root_nh_.getParam(name_public_ns, val))
-      return true;
-    else
-    {
-      val = def;
-      if (!ignore_warnings)
-      {
-        if (description_.private_param_ns.data.empty() && description_.public_param_ns.data.empty())
-          ROS_WARN("[%s]: No plugin parameters defined!", this->getName().c_str());
-        else
-        {
-          std::string plugin_ns = "/" + vigir_generic_params::strip_const(root_nh_.getNamespace(), '/');
-          ROS_WARN("[%s]: '%s' plugin parameter is missing in namespaces '%s...'", this->getName().c_str(), name.c_str(), plugin_ns.c_str());
-          ROS_WARN("    private: '...%s'", ("/" + description_.private_param_ns.data).c_str());
-          ROS_WARN("    public: '...%s'", ("/" + description_.public_param_ns.data).c_str());
-        }
-      }
-      return false;
-    }
+    return rosparam_handler_->getParam(name, val, def, ignore_warnings);
   }
 
+  /**
+   * @brief Retrieves parameter from rosparam server
+   * @param name name of parameter
+   * @param def default value
+   * @param ignore_warnings When true no warnings will be printed out when param was not present
+   * @return retrieved parameter if available, otherwise given default value
+   */
   template<typename T>
   T pluginParam(const std::string& name, const T& def = T(), bool ignore_warnings = false) const
   {
@@ -129,10 +128,9 @@ protected:
     return result;
   }
 
-  ros::NodeHandle root_nh_;
-  ros::NodeHandle plugin_nh_;
-
 private:
+  vigir_generic_params::RosparamHandler::Ptr rosparam_handler_;
+
   msgs::PluginDescription description_;
 };
 }
