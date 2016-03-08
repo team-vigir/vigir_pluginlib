@@ -54,11 +54,25 @@ public:
 
   /**
    * @brief Initialization of plugin specific features.
+   * @param nh Nodehandle the plugin
+   * @param params Parameter Set from which parameters can be retrieved from
    * @return true when initialization was successful
    */
   virtual bool initialize(ros::NodeHandle& nh, const vigir_generic_params::ParameterSet& params);
 
-  virtual void loadParams(const vigir_generic_params::ParameterSet& /*params*/) {}
+  /**
+   * @brief Called after initialization of this and other plugins has been completed.
+   * At this point other plugins can be used safely.
+   * @param params Parameter Set from which parameters can be retrieved from
+   * @return true when post initialization was successful
+   */
+  virtual bool post_initialize(const vigir_generic_params::ParameterSet& /*params*/) { return true; }
+
+  /**
+   * @brief Loads parameters from parameter set and rosparam server.
+   * @param params Parameter Set from which parameters can be retrieved from
+   */
+  virtual bool loadParams(const vigir_generic_params::ParameterSet& /*params*/) { return true; }
 
   /**
    * Used for automatically generate type ids for data types. Override _typeId()
@@ -127,6 +141,8 @@ protected:
     getPluginParam(name, result, def, ignore_warnings);
     return result;
   }
+
+  ros::NodeHandle plugin_nh_;
 
 private:
   vigir_generic_params::RosparamHandler::Ptr rosparam_handler_;

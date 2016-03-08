@@ -49,9 +49,8 @@ Plugin::~Plugin()
 
 bool Plugin::initialize(ros::NodeHandle& nh, const vigir_generic_params::ParameterSet& params)
 {
-  loadParams(params);
-
-  return true;
+  plugin_nh_ = nh;
+  return loadParams(params);
 }
 
 const msgs::PluginDescription& Plugin::getDescription() const
@@ -98,6 +97,6 @@ void Plugin::updateDescription(const msgs::PluginDescription& description)
 {
   description_ = description;
 
-  rosparam_handler_.reset(new vigir_generic_params::RosparamHandler(description_.private_param_ns.data + "/params", description_.public_param_ns.data + "/params"));
+  rosparam_handler_.reset(new vigir_generic_params::RosparamHandler(description_.private_param_ns.data + "/params", description_.public_param_ns.data + "/params", plugin_nh_));
 }
-}
+} // namespace

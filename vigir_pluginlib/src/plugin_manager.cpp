@@ -1,5 +1,8 @@
 #include <vigir_pluginlib/plugin_manager.h>
+
 #include <ros/console.h>
+
+
 
 namespace vigir_pluginlib
 {
@@ -104,18 +107,34 @@ const PluginManager::PluginLoaderVector& PluginManager::getPluginClassLoader()
   return Instance()->class_loader_;
 }
 
-bool PluginManager::addPlugins(const std::vector<msgs::PluginDescription>& plugin_descriptions)
+bool PluginManager::addPlugins(const std::vector<msgs::PluginDescription>& plugin_descriptions, bool initialize)
 {
   bool success = true;
+
+  std::list<Plugin::Ptr> plugins;
+
+  // add plugins
   for (const msgs::PluginDescription& description : plugin_descriptions)
   {
-    if (!addPlugin(description))
+    if (addPlugin(description, false))
+      plugins.push_back(getPluginByName(description.name.data));
+    else
       success = false;
   }
+
+  // (post) intialize plugins
+  if (initialize)
+  {
+    for (Plugin::Ptr plugin : plugins)
+      success &= plugin->initialize(Instance()->nh_, ParameterManager::getActive());
+    for (Plugin::Ptr plugin : plugins)
+      success &= plugin->post_initialize(ParameterManager::getActive());
+  }
+
   return success;
 }
 
-bool PluginManager::addPlugin(const msgs::PluginDescription& plugin_description)
+bool PluginManager::addPlugin(const msgs::PluginDescription& plugin_description, bool initialize)
 {
   // best effort handling for incomplete plugin description
   msgs::PluginDescription description = plugin_description;
@@ -178,24 +197,24 @@ bool PluginManager::addPlugin(const msgs::PluginDescription& plugin_description)
     return false;
   }
 
-  PluginManager::addPlugin(p);
+  PluginManager::addPlugin(p, initialize);
   return true;
 }
 
-bool PluginManager::addPluginByName(const std::string& name)
+bool PluginManager::addPluginByName(const std::string& name, bool initialize)
 {
   msgs::PluginDescription description;
   description.name.data = name;
-  return addPlugin(description);
+  return addPlugin(description, initialize);
 }
 
-void PluginManager::addPlugin(Plugin* plugin)
+void PluginManager::addPlugin(Plugin* plugin, bool initialize)
 {
   Plugin::Ptr plugin_ptr(plugin);
-  addPlugin(plugin_ptr);
+  addPlugin(plugin_ptr, initialize);
 }
 
-void PluginManager::addPlugin(Plugin::Ptr plugin)
+void PluginManager::addPlugin(Plugin::Ptr plugin, bool initialize)
 {
   if (!plugin)
   {
@@ -227,7 +246,7 @@ void PluginManager::addPlugin(Plugin::Ptr plugin)
 
   Instance()->plugins_by_name_[plugin->getName()] = plugin;
 
-  if (!plugin->initialize(Instance()->nh_, ParameterManager::getActive()))
+  if (initialize && !(plugin->initialize(Instance()->nh_, ParameterManager::getActive()) && plugin->post_initialize(ParameterManager::getActive())))
     ROS_ERROR("[PluginManager] addPlugin: Initialization of Plugin '%s' with type_class '%s' failed!", plugin->getName().c_str(), plugin->getTypeClass().c_str());
 
   Instance()->loaded_plugin_set_.clear();
@@ -236,16 +255,19 @@ void PluginManager::addPlugin(Plugin::Ptr plugin)
   Instance()->publishPluginStateUpdate();
 }
 
-bool PluginManager::getPluginByName(const std::string& name, Plugin::Ptr& plugin)
+Plugin::Ptr PluginManager::getPluginByName(const std::string& name)
 {
-  plugin.reset();
-
   std::map<std::string, Plugin::Ptr>::const_iterator itr = Instance()->plugins_by_name_.find(name);
   if (itr == Instance()->plugins_by_name_.end())
-    return false;
+    return Plugin::Ptr();
 
-  plugin = itr->second;
-  return true;
+  return itr->second;
+}
+
+bool PluginManager::getPluginByName(const std::string& name, Plugin::Ptr& plugin)
+{
+  plugin = getPluginByName(name);
+  return plugin.get() != nullptr;
 }
 
 bool PluginManager::getPluginsByTypeClass(const std::string& type_class, std::vector<Plugin::Ptr>& plugins)
@@ -663,4 +685,4 @@ void PluginManager::loadPluginSetAction(const msgs::PluginManagementGoalConstPtr
   else
     load_plugin_set_as_->setAborted(result);
 }
-}
+} // namespace

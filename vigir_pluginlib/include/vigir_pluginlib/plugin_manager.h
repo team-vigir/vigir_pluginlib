@@ -133,20 +133,23 @@ public:
 
   /**
    * @brief Instantiation of plugin using ClassLoader
-   * @param type The name of the class to load
+   * @param plugin_description description which plugin to load
+   * @param name name of plugin to load
+   * @param initialize if true then the plugin's initialize will be called
+   * after instantiation
    * @return false, if instantiation has failed, otherwise true
    */
-  static bool addPlugins(const std::vector<msgs::PluginDescription>& plugin_descriptions);
-  static bool addPlugin(const msgs::PluginDescription& plugin_description);
-  static bool addPluginByName(const std::string& name);
+  static bool addPlugins(const std::vector<msgs::PluginDescription>& plugin_descriptions, bool initialize = true);
+  static bool addPlugin(const msgs::PluginDescription& plugin_description, bool initialize = true);
+  static bool addPluginByName(const std::string& name, bool initialize = true);
 
   template<typename PluginDerivedClass>
-  static void addPlugin()
+  static void addPlugin(bool initialize = true)
   {
     addPlugin(new PluginDerivedClass());
   }
-  static void addPlugin(Plugin* plugin); // this function takes over pointer and will free memory automatically, when plugin is removed
-  static void addPlugin(Plugin::Ptr plugin);
+  static void addPlugin(Plugin* plugin, bool initialize = true); // this function takes over pointer and will free memory automatically, when plugin is removed
+  static void addPlugin(Plugin::Ptr plugin, bool initialize = true);
 
   /**
    * Returns first found plugin matching typename T. If specific element should be returned, do set name.
@@ -186,6 +189,12 @@ public:
     return false;
   }
 
+  template<typename T>
+  inline static bool getPluginByName(const std::string& name, boost::shared_ptr<T>& plugin)
+  {
+    return getPlugin(plugin, name);
+  }
+  static Plugin::Ptr getPluginByName(const std::string& name);
   static bool getPluginByName(const std::string& name, Plugin::Ptr& plugin);
 
   /// returns all plugins derived by class T in alphabetical order (name)
