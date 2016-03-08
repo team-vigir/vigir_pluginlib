@@ -71,6 +71,7 @@ public:
   /**
    * @brief Loads parameters from parameter set and rosparam server.
    * @param params Parameter Set from which parameters can be retrieved from
+   * @return true if loading parameters was successful
    */
   virtual bool loadParams(const vigir_generic_params::ParameterSet& /*params*/) { return true; }
 
@@ -142,7 +143,7 @@ protected:
     return result;
   }
 
-  ros::NodeHandle plugin_nh_;
+  mutable ros::NodeHandle plugin_nh_;
 
 private:
   vigir_generic_params::RosparamHandler::Ptr rosparam_handler_;
