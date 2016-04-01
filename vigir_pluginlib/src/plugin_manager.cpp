@@ -128,7 +128,7 @@ bool PluginManager::addPlugins(const std::vector<msgs::PluginDescription>& plugi
     for (Plugin::Ptr plugin : plugins)
       success &= plugin->initialize(Instance()->nh_, ParameterManager::getActive());
     for (Plugin::Ptr plugin : plugins)
-      success &= plugin->post_initialize(ParameterManager::getActive());
+      success &= plugin->postInitialize(ParameterManager::getActive());
   }
 
   return success;
@@ -246,7 +246,7 @@ void PluginManager::addPlugin(Plugin::Ptr plugin, bool initialize)
 
   Instance()->plugins_by_name_[plugin->getName()] = plugin;
 
-  if (initialize && !(plugin->initialize(Instance()->nh_, ParameterManager::getActive()) && plugin->post_initialize(ParameterManager::getActive())))
+  if (initialize && !(plugin->initialize(Instance()->nh_, ParameterManager::getActive()) && plugin->postInitialize(ParameterManager::getActive())))
     ROS_ERROR("[PluginManager] addPlugin: Initialization of Plugin '%s' with type_class '%s' failed!", plugin->getName().c_str(), plugin->getTypeClass().c_str());
 
   Instance()->loaded_plugin_set_.clear();

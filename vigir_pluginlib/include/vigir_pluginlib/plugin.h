@@ -58,7 +58,7 @@ public:
    * @param params Parameter Set from which parameters can be retrieved from
    * @return true when initialization was successful
    */
-  virtual bool initialize(ros::NodeHandle& nh, const vigir_generic_params::ParameterSet& params);
+  virtual bool initialize(ros::NodeHandle& nh, const vigir_generic_params::ParameterSet& params = vigir_generic_params::ParameterSet());
 
   /**
    * @brief Called after initialization of this and other plugins has been completed.
@@ -66,7 +66,7 @@ public:
    * @param params Parameter Set from which parameters can be retrieved from
    * @return true when post initialization was successful
    */
-  virtual bool post_initialize(const vigir_generic_params::ParameterSet& /*params*/) { return true; }
+  virtual bool postInitialize(const vigir_generic_params::ParameterSet& params = vigir_generic_params::ParameterSet()) { return true; }
 
   /**
    * @brief Loads parameters from parameter set and rosparam server.
