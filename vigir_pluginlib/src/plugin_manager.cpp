@@ -126,7 +126,7 @@ bool PluginManager::addPlugins(const std::vector<msgs::PluginDescription>& plugi
   if (initialize)
   {
     for (Plugin::Ptr plugin : plugins)
-      success &= plugin->initialize(Instance()->nh_, ParameterManager::getActive());
+      success &= plugin->initialize(ParameterManager::getActive());
     for (Plugin::Ptr plugin : plugins)
       success &= plugin->postInitialize(ParameterManager::getActive());
   }
@@ -236,7 +236,7 @@ void PluginManager::addPlugin(Plugin::Ptr plugin, bool initialize)
     else
       ROS_INFO("[PluginManager] addPlugin: Plugin '%s' with type_class '%s' is replaced by '%s' with type_class '%s'!", itr->second->getName().c_str(), itr->second->getTypeClass().c_str(), plugin->getName().c_str(), plugin->getTypeClass().c_str());
   }
-  else if (plugin->isUnique() && getUniquePluginByTypeClass(plugin->getTypeClass(), unique_plugin)) // replace by uniqueness
+  else if (plugin->isUnique() && getUniquePluginByTypeClass(plugin->getTypeClass(), unique_plugin)) // replace due to uniqueness
   {
     ROS_INFO("[PluginManager] addPlugin: Unique plugin '%s' with type_class '%s' is replaced by '%s'!", unique_plugin->getName().c_str(), unique_plugin->getTypeClass().c_str(), plugin->getName().c_str());
     Instance()->plugins_by_name_.erase(Instance()->plugins_by_name_.find(unique_plugin->getName())); // prevent outputs by removePlugin call
@@ -246,7 +246,9 @@ void PluginManager::addPlugin(Plugin::Ptr plugin, bool initialize)
 
   Instance()->plugins_by_name_[plugin->getName()] = plugin;
 
-  if (initialize && !(plugin->initialize(Instance()->nh_, ParameterManager::getActive()) && plugin->postInitialize(ParameterManager::getActive())))
+  plugin->setup(Instance()->nh_, ParameterManager::getActive());
+
+  if (initialize && !(plugin->initialize(ParameterManager::getActive()) && plugin->postInitialize(ParameterManager::getActive())))
     ROS_ERROR("[PluginManager] addPlugin: Initialization of Plugin '%s' with type_class '%s' failed!", plugin->getName().c_str(), plugin->getTypeClass().c_str());
 
   Instance()->loaded_plugin_set_.clear();

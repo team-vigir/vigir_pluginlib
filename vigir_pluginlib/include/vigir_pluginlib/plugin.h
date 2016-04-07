@@ -32,7 +32,6 @@
 #include <ros/ros.h>
 
 #include <vigir_generic_params/parameter_manager.h>
-#include <vigir_generic_params/rosparam_handler.h>
 
 #include <vigir_pluginlib_msgs/pluginlib_msgs.h>
 
@@ -52,28 +51,37 @@ public:
   Plugin(const std::string& name, const std::string& type_class_package = std::string(), const std::string& base_class_package = std::string(), const std::string& base_class = std::string());
   virtual ~Plugin();
 
+private:
+  /**
+   * @brief Initialization of plugin itself, e.g. local parameter set.
+   * @param nh Nodehandle the plugin
+   * @param global_params global parameter set
+   * @return true, if setup was successful
+   */
+  bool setup(ros::NodeHandle& nh, const vigir_generic_params::ParameterSet& global_params = vigir_generic_params::ParameterSet());
+
+public:
   /**
    * @brief Initialization of plugin specific features.
-   * @param nh Nodehandle the plugin
-   * @param params Parameter Set from which parameters can be retrieved from
+   * @param global_params global parameter set
    * @return true when initialization was successful
    */
-  virtual bool initialize(ros::NodeHandle& nh, const vigir_generic_params::ParameterSet& params = vigir_generic_params::ParameterSet());
+  virtual bool initialize(const vigir_generic_params::ParameterSet& global_params = vigir_generic_params::ParameterSet()) { return loadParams(global_params); }
 
   /**
    * @brief Called after initialization of this and other plugins has been completed.
    * At this point other plugins can be used safely.
-   * @param params Parameter Set from which parameters can be retrieved from
-   * @return true when post initialization was successful
+   * @param global_params global parameter set
+   * @return true, if post initialization was successful
    */
-  virtual bool postInitialize(const vigir_generic_params::ParameterSet& params = vigir_generic_params::ParameterSet()) { return true; }
+  virtual bool postInitialize(const vigir_generic_params::ParameterSet& global_params = vigir_generic_params::ParameterSet()) { return true; }
 
   /**
    * @brief Loads parameters from parameter set and rosparam server.
-   * @param params Parameter Set from which parameters can be retrieved from
-   * @return true if loading parameters was successful
+   * @param global_params global parameter set
+   * @return true, if loading parameters was successful
    */
-  virtual bool loadParams(const vigir_generic_params::ParameterSet& /*params*/) { return true; }
+  virtual bool loadParams(const vigir_generic_params::ParameterSet& /*global_params*/) { return true; }
 
   /**
    * Used for automatically generate type ids for data types. Override _typeId()
@@ -115,7 +123,13 @@ protected:
   virtual void updateDescription(const msgs::PluginDescription& description);
 
   /**
-   * @brief Retrieves parameter from rosparam server
+   * @brief Returns parameter set of plugin
+   * @return parameter set of pluign
+   */
+  inline const vigir_generic_params::ParameterSet& getParams() const { return params_; }
+
+  /**
+   * @brief Retrieves parameter from plugin's parameter set
    * @param name name of parameter
    * @param val [out] return variable for parameter
    * @param def default value
@@ -123,30 +137,36 @@ protected:
    * @return true when parameter was found at rosparam
    */
   template<typename T>
-  bool getPluginParam(const std::string& name, T& val, const T& def = T(), bool ignore_warnings = false) const
+  bool getParam(const std::string& name, T& val, const T& def = T(), bool ignore_warnings = false) const
   {
-    return rosparam_handler_->getParam(name, val, def, ignore_warnings);
+    if (ignore_warnings && !params_.hasParam(name))
+      return false;
+
+    return params_.getParam(name, val, def);
   }
 
   /**
-   * @brief Retrieves parameter from rosparam server
+   * @brief Retrieves parameter from plugin's parameter set
    * @param name name of parameter
    * @param def default value
    * @param ignore_warnings When true no warnings will be printed out when param was not present
    * @return retrieved parameter if available, otherwise given default value
    */
   template<typename T>
-  T pluginParam(const std::string& name, const T& def = T(), bool ignore_warnings = false) const
+  T param(const std::string& name, const T& def = T(), bool ignore_warnings = false) const
   {
     T result;
-    getPluginParam(name, result, def, ignore_warnings);
+    getParam(name, result, def, ignore_warnings);
     return result;
   }
 
-  mutable ros::NodeHandle plugin_nh_;
+  ros::NodeHandle nh_;
 
 private:
-  vigir_generic_params::RosparamHandler::Ptr rosparam_handler_;
+  void setNodehandle(const ros::NodeHandle& nh);
+  void setParams(const vigir_generic_params::ParameterSet& params);
+
+  vigir_generic_params::ParameterSet params_;
 
   msgs::PluginDescription description_;
 };
