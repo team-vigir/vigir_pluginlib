@@ -23,6 +23,8 @@ PluginManager::Ptr PluginManager::Instance()
 
 PluginManager::~PluginManager()
 {
+  boost::unique_lock<boost::shared_mutex> lock(plugins_mutex_);
+
   // prevents warning when ClassLoaders get destroyed
   plugins_by_name_.clear();
 
@@ -102,11 +104,6 @@ bool PluginManager::autocompletePluginDescriptionByName(const std::string& name,
   }
 }
 
-const PluginManager::PluginLoaderVector& PluginManager::getPluginClassLoader()
-{
-  return Instance()->class_loader_;
-}
-
 bool PluginManager::addPlugins(const std::vector<msgs::PluginDescription>& plugin_descriptions, bool initialize)
 {
   bool success = true;
@@ -157,6 +154,8 @@ bool PluginManager::addPlugin(const msgs::PluginDescription& plugin_description,
 
   try
   {
+    boost::shared_lock<boost::shared_mutex> lock(Instance()->plugins_mutex_);
+
     std::string _base_class = description.base_class.data;
 
     // search for appropriate ClassLoader
@@ -222,6 +221,8 @@ void PluginManager::addPlugin(Plugin::Ptr plugin, bool initialize)
     return;
   }
 
+  boost::upgrade_lock<boost::shared_mutex> lock(Instance()->plugins_mutex_);
+
   std::map<std::string, Plugin::Ptr>::iterator itr = Instance()->plugins_by_name_.find(plugin->getName());
   Plugin::Ptr unique_plugin;
 
@@ -239,19 +240,23 @@ void PluginManager::addPlugin(Plugin::Ptr plugin, bool initialize)
   else if (plugin->isUnique() && getUniquePluginByTypeClass(plugin->getTypeClass(), unique_plugin)) // replace due to uniqueness
   {
     ROS_INFO("[PluginManager] addPlugin: Unique plugin '%s' with type_class '%s' is replaced by '%s'!", unique_plugin->getName().c_str(), unique_plugin->getTypeClass().c_str(), plugin->getName().c_str());
+    boost::upgrade_to_unique_lock<boost::shared_mutex> uniqueLock(lock);
     Instance()->plugins_by_name_.erase(Instance()->plugins_by_name_.find(unique_plugin->getName())); // prevent outputs by removePlugin call
   }
   else
     ROS_INFO("[PluginManager] addPlugin: Added new plugin '%s' with type_class '%s'", plugin->getName().c_str(), plugin->getTypeClass().c_str());
 
-  Instance()->plugins_by_name_[plugin->getName()] = plugin;
+  {
+    boost::upgrade_to_unique_lock<boost::shared_mutex> uniqueLock(lock);
+    Instance()->plugins_by_name_[plugin->getName()] = plugin;
 
-  plugin->setup(Instance()->nh_, ParameterManager::getActive());
+    plugin->setup(Instance()->nh_, ParameterManager::getActive());
 
-  if (initialize && !(plugin->initialize(ParameterManager::getActive()) && plugin->postInitialize(ParameterManager::getActive())))
-    ROS_ERROR("[PluginManager] addPlugin: Initialization of Plugin '%s' with type_class '%s' failed!", plugin->getName().c_str(), plugin->getTypeClass().c_str());
+    if (initialize && !(plugin->initialize(ParameterManager::getActive()) && plugin->postInitialize(ParameterManager::getActive())))
+      ROS_ERROR("[PluginManager] addPlugin: Initialization of Plugin '%s' with type_class '%s' failed!", plugin->getName().c_str(), plugin->getTypeClass().c_str());
 
-  Instance()->loaded_plugin_set_.clear();
+    Instance()->loaded_plugin_set_.clear();
+  }
 
   // publish update
   Instance()->publishPluginStateUpdate();
@@ -259,6 +264,8 @@ void PluginManager::addPlugin(Plugin::Ptr plugin, bool initialize)
 
 Plugin::Ptr PluginManager::getPluginByName(const std::string& name)
 {
+  boost::shared_lock<boost::shared_mutex> lock(Instance()->plugins_mutex_);
+
   std::map<std::string, Plugin::Ptr>::const_iterator itr = Instance()->plugins_by_name_.find(name);
   if (itr == Instance()->plugins_by_name_.end())
     return Plugin::Ptr();
@@ -276,6 +283,8 @@ bool PluginManager::getPluginsByTypeClass(const std::string& type_class, std::ve
 {
   plugins.clear();
 
+  boost::shared_lock<boost::shared_mutex> lock(Instance()->plugins_mutex_);
+
   for (std::map<std::string, Plugin::Ptr>::iterator itr = Instance()->plugins_by_name_.begin(); itr != Instance()->plugins_by_name_.end(); itr++)
   {
     if (itr->second->getTypeClass() == type_class)
@@ -288,6 +297,8 @@ bool PluginManager::getPluginsByTypeClass(const std::string& type_class, std::ve
 bool PluginManager::getUniquePluginByTypeClass(const std::string& type_class, Plugin::Ptr& plugin)
 {
   plugin.reset();
+
+  boost::shared_lock<boost::shared_mutex> lock(Instance()->plugins_mutex_);
 
   for (std::map<std::string, Plugin::Ptr>::iterator itr = Instance()->plugins_by_name_.begin(); itr != Instance()->plugins_by_name_.end(); itr++)
   {
@@ -304,6 +315,8 @@ bool PluginManager::getUniquePluginByTypeClass(const std::string& type_class, Pl
 void PluginManager::getPluginDescriptions(std::vector<msgs::PluginDescription>& descriptions, msgs::PluginDescription filter)
 {
   descriptions.clear();
+
+  boost::shared_lock<boost::shared_mutex> lock(Instance()->plugins_mutex_);
 
   for (PluginLoaderBase* loader : Instance()->class_loader_)
   {
@@ -334,6 +347,8 @@ void PluginManager::getPluginDescriptions(std::vector<msgs::PluginDescription>& 
 void PluginManager::getPluginStates(std::vector<msgs::PluginState>& plugin_states, msgs::PluginDescription filter)
 {
   plugin_states.clear();
+
+  boost::shared_lock<boost::shared_mutex> lock(Instance()->plugins_mutex_);
 
   for (std::map<std::string, Plugin::Ptr>::const_iterator itr = Instance()->plugins_by_name_.begin(); itr != Instance()->plugins_by_name_.end(); itr++)
   {
@@ -376,11 +391,14 @@ bool PluginManager::removePlugin(const msgs::PluginDescription& plugin_descripti
 
 bool PluginManager::removePluginByName(const std::string& name)
 {
+  boost::upgrade_lock<boost::shared_mutex> lock(Instance()->plugins_mutex_);
+
   std::map<std::string, Plugin::Ptr>::iterator itr = Instance()->plugins_by_name_.find(name);
   if (itr == Instance()->plugins_by_name_.end())
     return false;
 
   ROS_INFO("[PluginManager] Removed plugin '%s' with type_class '%s'", itr->second->getName().c_str(), itr->second->getTypeClass().c_str());
+  boost::upgrade_to_unique_lock<boost::shared_mutex> uniqueLock(lock);
   Instance()->plugins_by_name_.erase(itr);
 
   Instance()->loaded_plugin_set_.clear();
@@ -398,6 +416,8 @@ void PluginManager::removePlugin(Plugin::Ptr& plugin)
 
 void PluginManager::removePluginsByTypeClass(const std::string& type_class)
 {
+  boost::unique_lock<boost::shared_mutex> lock(Instance()->plugins_mutex_);
+
   for (std::map<std::string, Plugin::Ptr>::iterator itr = Instance()->plugins_by_name_.begin(); itr != Instance()->plugins_by_name_.end();)
   {
     if (itr->second->getTypeClass() == type_class)
@@ -413,8 +433,11 @@ bool PluginManager::loadPluginSet(const std::vector<msgs::PluginDescription>& pl
 
   // get list of active plugins
   std::vector<msgs::PluginDescription> active_plugins;
-  for (std::map<std::string, Plugin::Ptr>::const_iterator itr = Instance()->plugins_by_name_.begin(); itr != Instance()->plugins_by_name_.end(); itr++)
-    active_plugins.push_back(itr->second->getDescription());
+  {
+    boost::shared_lock<boost::shared_mutex> lock(Instance()->plugins_mutex_);
+    for (std::map<std::string, Plugin::Ptr>::const_iterator itr = Instance()->plugins_by_name_.begin(); itr != Instance()->plugins_by_name_.end(); itr++)
+      active_plugins.push_back(itr->second->getDescription());
+  }
 
   // remove all plugins which are not existing in list
   std::vector<msgs::PluginDescription> remove_plugin_list = filterDescriptionList(active_plugins, plugin_descriptions, true);
@@ -426,6 +449,7 @@ bool PluginManager::loadPluginSet(const std::vector<msgs::PluginDescription>& pl
   std::vector<msgs::PluginDescription> updated_plugin_list = filterDescriptionList(plugin_descriptions, active_plugins);
   for (msgs::PluginDescription description : updated_plugin_list)
   {
+    boost::shared_lock<boost::shared_mutex> lock(Instance()->plugins_mutex_);
     Plugin::Ptr& plugin = Instance()->plugins_by_name_[description.name.data];
 
     plugin->updateDescription(description);
@@ -521,17 +545,20 @@ bool PluginManager::loadPluginSet(const std::string& name)
 
 bool PluginManager::hasPlugin(Plugin::Ptr& plugin)
 {
+  boost::shared_lock<boost::shared_mutex> lock(Instance()->plugins_mutex_);
   std::map<std::string, Plugin::Ptr>::iterator itr = Instance()->plugins_by_name_.find(plugin->getName());
   return (itr != Instance()->plugins_by_name_.end() && itr->second->getTypeClass() == plugin->getTypeClass());
 }
 
 bool PluginManager::hasPluginByName(const std::string& name)
 {
+  boost::shared_lock<boost::shared_mutex> lock(Instance()->plugins_mutex_);
   return Instance()->plugins_by_name_.find(name) != Instance()->plugins_by_name_.end();
 }
 
 bool PluginManager::hasPluginsByTypeClass(const std::string& type_class)
 {
+  boost::shared_lock<boost::shared_mutex> lock(Instance()->plugins_mutex_);
   for (std::map<std::string, Plugin::Ptr>::iterator itr = Instance()->plugins_by_name_.begin(); itr != Instance()->plugins_by_name_.end(); itr++)
   {
     if (itr->second->getTypeClass() == type_class)
@@ -541,6 +568,7 @@ bool PluginManager::hasPluginsByTypeClass(const std::string& type_class)
 
 void PluginManager::loadParams(const vigir_generic_params::ParameterSet& params)
 {
+  boost::shared_lock<boost::shared_mutex> lock(Instance()->plugins_mutex_);
   for (std::map<std::string, Plugin::Ptr>::iterator itr = Instance()->plugins_by_name_.begin(); itr != Instance()->plugins_by_name_.end(); itr++)
     itr->second->loadParams(params);
 }

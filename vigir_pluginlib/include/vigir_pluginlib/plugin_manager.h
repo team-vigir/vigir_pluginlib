@@ -95,6 +95,8 @@ public:
   template<class PluginBaseClass>
   static bool addPluginClassLoader(const std::string& package, const std::string& base_class, const std::string& attrib_name = std::string("plugin"), const std::vector<std::string>& plugin_xml_paths = std::vector<std::string>())
   {
+    boost::upgrade_lock<boost::shared_mutex> lock(Instance()->plugins_mutex_);
+
     // check for duplicate
     for (PluginLoaderBase* loader : Instance()->class_loader_)
     {
@@ -107,6 +109,7 @@ public:
 
     try
     {
+      boost::upgrade_to_unique_lock<boost::shared_mutex> uniqueLock(lock);
       PluginLoader<PluginBaseClass>* loader = new PluginLoader<PluginBaseClass>(package, base_class, attrib_name, plugin_xml_paths);
       Instance()->class_loader_.push_back(loader);
       ROS_INFO("[PluginManager] Added ClassLoader for plugins of type '%s'.", base_class.c_str());
@@ -125,11 +128,6 @@ public:
 
     return true;
   }
-  /**
-   * @brief Returns reference to a list of added ClassLoader
-   * @return Const reference to ClassLoader
-   */
-  static const PluginLoaderVector& getPluginClassLoader();
 
   /**
    * @brief Instantiation of plugin using ClassLoader
@@ -176,6 +174,8 @@ public:
     // type specific search
     else
     {
+      boost::shared_lock<boost::shared_mutex> lock(Instance()->plugins_mutex_);
+
       for (std::map<std::string, Plugin::Ptr>::iterator itr = Instance()->plugins_by_name_.begin(); itr != Instance()->plugins_by_name_.end(); itr++)
       {
         plugin = boost::dynamic_pointer_cast<T>(itr->second);
@@ -203,6 +203,8 @@ public:
   {
     plugins.clear();
 
+    boost::shared_lock<boost::shared_mutex> lock(Instance()->plugins_mutex_);
+
     for (std::map<std::string, Plugin::Ptr>::iterator itr = Instance()->plugins_by_name_.begin(); itr != Instance()->plugins_by_name_.end(); itr++)
     {
       boost::shared_ptr<T> plugin = boost::dynamic_pointer_cast<T>(itr->second);
@@ -217,6 +219,8 @@ public:
   static bool getPluginsByType(std::map<std::string, boost::shared_ptr<T> >& plugins)
   {
     plugins.clear();
+
+    boost::shared_lock<boost::shared_mutex> lock(Instance()->plugins_mutex_);
 
     for (std::map<std::string, Plugin::Ptr>::iterator itr = Instance()->plugins_by_name_.begin(); itr != Instance()->plugins_by_name_.end(); itr++)
     {
@@ -244,11 +248,16 @@ public:
   template<typename T>
   static void removePluginsByType()
   {
+    boost::upgrade_lock<boost::shared_mutex> lock(Instance()->plugins_mutex_);
+
     for (std::map<std::string, Plugin::Ptr>::iterator itr = Instance()->plugins_by_name_.begin(); itr != Instance()->plugins_by_name_.end();)
     {
       boost::shared_ptr<T> plugin = boost::dynamic_pointer_cast<T>(itr->second);
       if (plugin)
+      {
+        boost::upgrade_to_unique_lock<boost::shared_mutex> uniqueLock(lock);
         removePluginByName(itr++->first);
+      }
       else
         itr++;
     }
@@ -265,12 +274,15 @@ public:
   template<typename T>
   static bool hasPluginsByType()
   {
+    boost::shared_lock<boost::shared_mutex> lock(Instance()->plugins_mutex_);
+
     for (std::map<std::string, Plugin::Ptr>::iterator itr = Instance()->plugins_by_name_.begin(); itr != Instance()->plugins_by_name_.end(); itr++)
     {
       boost::shared_ptr<T> plugin = boost::dynamic_pointer_cast<T>(itr->second);
       if (plugin)
         return true;
     }
+
     return false;
   }
   static bool hasPluginsByTypeClass(const std::string& type_class);
@@ -281,6 +293,9 @@ protected:
   // helper
   bool getPluginDescription(const std::string& key, msgs::PluginDescription& description);
   void publishPluginStateUpdate();
+
+  // mutex to ensure thread safeness
+  mutable boost::shared_mutex plugins_mutex_;
 
   // nodehandle (namespace) to be used
   ros::NodeHandle nh_;
