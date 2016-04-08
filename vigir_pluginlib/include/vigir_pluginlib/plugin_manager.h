@@ -248,15 +248,16 @@ public:
   template<typename T>
   static void removePluginsByType()
   {
-    boost::upgrade_lock<boost::shared_mutex> lock(Instance()->plugins_mutex_);
+    boost::shared_lock<boost::shared_mutex> lock(Instance()->plugins_mutex_);
 
     for (std::map<std::string, Plugin::Ptr>::iterator itr = Instance()->plugins_by_name_.begin(); itr != Instance()->plugins_by_name_.end();)
     {
       boost::shared_ptr<T> plugin = boost::dynamic_pointer_cast<T>(itr->second);
       if (plugin)
       {
-        boost::upgrade_to_unique_lock<boost::shared_mutex> uniqueLock(lock);
+        lock.unlock();
         removePluginByName(itr++->first);
+        lock.lock();
       }
       else
         itr++;

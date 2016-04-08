@@ -397,11 +397,13 @@ bool PluginManager::removePluginByName(const std::string& name)
   if (itr == Instance()->plugins_by_name_.end())
     return false;
 
-  ROS_INFO("[PluginManager] Removed plugin '%s' with type_class '%s'", itr->second->getName().c_str(), itr->second->getTypeClass().c_str());
-  boost::upgrade_to_unique_lock<boost::shared_mutex> uniqueLock(lock);
-  Instance()->plugins_by_name_.erase(itr);
+  {
+    ROS_INFO("[PluginManager] Removed plugin '%s' with type_class '%s'", itr->second->getName().c_str(), itr->second->getTypeClass().c_str());
+    boost::upgrade_to_unique_lock<boost::shared_mutex> uniqueLock(lock);
+    Instance()->plugins_by_name_.erase(itr);
 
-  Instance()->loaded_plugin_set_.clear();
+    Instance()->loaded_plugin_set_.clear();
+  }
 
   // publish update
   Instance()->publishPluginStateUpdate();
@@ -416,12 +418,16 @@ void PluginManager::removePlugin(Plugin::Ptr& plugin)
 
 void PluginManager::removePluginsByTypeClass(const std::string& type_class)
 {
-  boost::unique_lock<boost::shared_mutex> lock(Instance()->plugins_mutex_);
+  boost::shared_lock<boost::shared_mutex> lock(Instance()->plugins_mutex_);
 
   for (std::map<std::string, Plugin::Ptr>::iterator itr = Instance()->plugins_by_name_.begin(); itr != Instance()->plugins_by_name_.end();)
   {
     if (itr->second->getTypeClass() == type_class)
+    {
+      lock.unlock();
       removePluginByName(itr++->first);
+      lock.lock();
+    }
     else
       itr++;
   }
