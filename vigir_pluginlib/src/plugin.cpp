@@ -40,7 +40,6 @@ Plugin::Plugin(const std::string& name, const std::string& type_class_package, c
   description.type_class_package.data = type_class_package;
   description.base_class_package.data = base_class_package;
   description.base_class.data = base_class;
-  updateDescription(description);
 }
 
 Plugin::~Plugin()

@@ -120,7 +120,7 @@ protected:
    * @brief Updates plugin description
    * @param description new description
    */
-  virtual void updateDescription(const msgs::PluginDescription& description);
+  void updateDescription(const msgs::PluginDescription& description);
 
   /**
    * @brief Returns parameter set of plugin

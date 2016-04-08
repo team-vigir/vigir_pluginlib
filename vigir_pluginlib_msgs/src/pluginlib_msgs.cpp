@@ -18,16 +18,17 @@ bool isDescriptionMatching(const msgs::PluginDescription& plugin_description, co
   return true;
 }
 
-void filterDescriptionList(std::vector<vigir_pluginlib_msgs::PluginDescription>& filtered_plugin_descriptions, const std::vector<vigir_pluginlib_msgs::PluginDescription>& plugin_descriptions, const msgs::PluginDescription& filter, bool inverse)
+std::vector<vigir_pluginlib_msgs::PluginDescription> filterDescriptionList(const std::vector<vigir_pluginlib_msgs::PluginDescription>& plugin_descriptions, const msgs::PluginDescription& filter, bool inverse)
 {
   std::vector<vigir_pluginlib_msgs::PluginDescription> filter_list;
   filter_list.push_back(filter);
-  filterDescriptionList(filtered_plugin_descriptions, plugin_descriptions, filter_list, inverse);
+  return filterDescriptionList(plugin_descriptions, filter_list, inverse);
 }
 
-void filterDescriptionList(std::vector<msgs::PluginDescription>& filtered_plugin_descriptions, const std::vector<msgs::PluginDescription>& plugin_descriptions, const std::vector<msgs::PluginDescription>& filter_list, bool inverse)
+std::vector<vigir_pluginlib_msgs::PluginDescription> filterDescriptionList(const std::vector<msgs::PluginDescription>& plugin_descriptions, const std::vector<msgs::PluginDescription>& filter_list, bool inverse)
 {
-  filtered_plugin_descriptions.clear();
+  std::vector<msgs::PluginDescription> result;
+
   for (const msgs::PluginDescription& plugin_description : plugin_descriptions)
   {
     bool is_matching = false;
@@ -41,7 +42,9 @@ void filterDescriptionList(std::vector<msgs::PluginDescription>& filtered_plugin
     }
 
     if (!inverse == is_matching)
-        filtered_plugin_descriptions.push_back(plugin_description);
+        result.push_back(plugin_description);
   }
+
+  return result;
 }
 }

@@ -417,16 +417,32 @@ bool PluginManager::loadPluginSet(const std::vector<msgs::PluginDescription>& pl
     active_plugins.push_back(itr->second->getDescription());
 
   // remove all plugins which are not existing in list
-  std::vector<msgs::PluginDescription> remove_plugin_list;
-  vigir_pluginlib::filterDescriptionList(remove_plugin_list, active_plugins, plugin_descriptions, true);
+  std::vector<msgs::PluginDescription> remove_plugin_list = filterDescriptionList(active_plugins, plugin_descriptions, true);
   if (!removePlugins(remove_plugin_list))
     success = false;
 
+  // update param namespace of remaining plugins, if changed
+  std::list<Plugin::Ptr> updated_plugins;
+  std::vector<msgs::PluginDescription> updated_plugin_list = filterDescriptionList(plugin_descriptions, active_plugins);
+  for (msgs::PluginDescription description : updated_plugin_list)
+  {
+    Plugin::Ptr& plugin = Instance()->plugins_by_name_[description.name.data];
+
+    plugin->updateDescription(description);
+    plugin->setup(Instance()->nh_, ParameterManager::getActive()); // force reload parameters from param server
+    updated_plugins.push_back(plugin);
+  }
+
   // add new plugins
-  std::vector<msgs::PluginDescription> add_plugin_list;
-  vigir_pluginlib::filterDescriptionList(add_plugin_list, plugin_descriptions, active_plugins, true);
+  std::vector<msgs::PluginDescription> add_plugin_list = filterDescriptionList(plugin_descriptions, active_plugins, true);
   if (!addPlugins(add_plugin_list))
     success = false;
+
+  // reinitialize plugins which has been updated before
+  for (Plugin::Ptr plugin : updated_plugins)
+    success &= plugin->initialize(ParameterManager::getActive());
+  for (Plugin::Ptr plugin : updated_plugins)
+    success &= plugin->postInitialize(ParameterManager::getActive());
 
   return success;
 }

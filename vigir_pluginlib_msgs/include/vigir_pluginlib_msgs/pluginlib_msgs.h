@@ -56,8 +56,24 @@ using namespace vigir_pluginlib_msgs;
 }
 
 bool isDescriptionMatching(const msgs::PluginDescription& plugin_description, const msgs::PluginDescription& filter);
-void filterDescriptionList(std::vector<msgs::PluginDescription>& filtered_plugin_descriptions, const std::vector<msgs::PluginDescription>& plugin_descriptions, const msgs::PluginDescription& filter, bool inverse = false);
-void filterDescriptionList(std::vector<msgs::PluginDescription>& filtered_plugin_descriptions, const std::vector<msgs::PluginDescription>& plugin_descriptions, const std::vector<msgs::PluginDescription>& filter_list, bool inverse = false);
+
+/**
+ * @brief Filters a plugin description list using a given filter criteria.
+ * @param plugin_descriptions original list
+ * @param filter description to match
+ * @param inverse if true, the inverse result will be returned
+ * @return resulting filtered list
+ */
+std::vector<msgs::PluginDescription> filterDescriptionList(const std::vector<msgs::PluginDescription>& plugin_descriptions, const msgs::PluginDescription& filter, bool inverse = false);
+
+/**
+ * @brief Filters a plugin description list using a given filter criteria.
+ * @param plugin_descriptions original list
+ * @param filter_list descriptions to match; Matching at least on element of this list is sufficient for positiv match
+ * @param inverse if true, the inverse result will be returned
+ * @return resulting filtered list
+ */
+std::vector<msgs::PluginDescription> filterDescriptionList(const std::vector<msgs::PluginDescription>& plugin_descriptions, const std::vector<msgs::PluginDescription>& filter_list, bool inverse = false);
 }
 
 #endif
