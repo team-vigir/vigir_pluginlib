@@ -28,7 +28,7 @@ PluginManager::~PluginManager()
   // prevents warning when ClassLoaders get destroyed
   plugins_by_name_.clear();
 
-  for (PluginLoaderBase* loader : Instance()->class_loader_)
+  for (PluginLoaderBase* loader : class_loader_)
     delete loader;
   class_loader_.clear();
 }
