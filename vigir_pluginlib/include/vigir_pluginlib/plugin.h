@@ -47,6 +47,8 @@ public:
   // typedefs
   typedef boost::shared_ptr<Plugin> Ptr;
   typedef boost::shared_ptr<const Plugin> ConstPtr;
+  typedef boost::weak_ptr<Plugin> WeakPtr;
+  typedef boost::weak_ptr<const Plugin> ConstWeakPtr;
 
   Plugin(const std::string& name, const std::string& type_class_package = std::string(), const std::string& base_class_package = std::string(), const std::string& base_class = std::string());
   virtual ~Plugin();
@@ -77,7 +79,7 @@ public:
   virtual bool postInitialize(const vigir_generic_params::ParameterSet& global_params = vigir_generic_params::ParameterSet()) { return true; }
 
   /**
-   * @brief Loads parameters from parameter set and rosparam server.
+   * @brief Loads parameters from parameter set and rosparam server. This method will be automatically called by initialize.
    * @param global_params global parameter set
    * @return true, if loading parameters was successful
    */
@@ -110,8 +112,7 @@ public:
 
 protected:
   /**
-   * Used internally for automatically generate type ids for data types. Override this
-   * function to use custom type ids for derived data types!
+   * Used internally for automatically generate type ids for data types.
    */
   template <typename T>
   inline static std::string _typeClass(T* t = nullptr) { return demangle(t ? typeid(*t).name() : typeid(T).name()); }

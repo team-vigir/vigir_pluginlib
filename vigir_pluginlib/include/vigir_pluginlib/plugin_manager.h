@@ -153,23 +153,16 @@ public:
    * Returns first found plugin matching typename T. If specific element should be returned, do set name.
    */
   template<typename T>
-  static bool getPlugin(boost::shared_ptr<T>& plugin, const std::string& name = std::string())
+  static boost::shared_ptr<T> getPlugin(const std::string& name = std::string())
   {
-    plugin.reset();
-
     // name specific search
-    if (name.size())
+    if (!name.empty())
     {
-      Plugin::Ptr p;
-      if (getPluginByName(name, p))
-      {
-        plugin = boost::dynamic_pointer_cast<T>(p);
-        if (plugin)
-          return true;
-      }
+      boost::shared_ptr<T> plugin = boost::dynamic_pointer_cast<T>(getPluginByName(name));
+      if (plugin)
+        return plugin;
 
-      ROS_ERROR("[PluginManager] Couldn't find any matching plugin named '%s'!", name.c_str());
-      return false;
+      ROS_ERROR("[PluginManager] Couldn't find any matching plugin named '%s' of type '%s'!", name.c_str(), Plugin::getTypeClass<T>().c_str());
     }
     // type specific search
     else
@@ -178,15 +171,25 @@ public:
 
       for (std::map<std::string, Plugin::Ptr>::iterator itr = Instance()->plugins_by_name_.begin(); itr != Instance()->plugins_by_name_.end(); itr++)
       {
-        plugin = boost::dynamic_pointer_cast<T>(itr->second);
+        boost::shared_ptr<T> plugin = boost::dynamic_pointer_cast<T>(itr->second);
         if (plugin)
-          return true;
+          return plugin;
       }
 
-      ROS_ERROR("[PluginManager] Couldn't find any matching plugin!");
-      return false;
+      ROS_ERROR("[PluginManager] Couldn't find any matching plugin of type '%s'!", Plugin::getTypeClass<T>().c_str());
     }
-    return false;
+
+    return boost::shared_ptr<T>();
+  }
+
+  /**
+   * Returns first found plugin matching typename T. If specific element should be returned, do set name.
+   */
+  template<typename T>
+  static bool getPlugin(boost::shared_ptr<T>& plugin, const std::string& name = std::string())
+  {
+    plugin = getPlugin<T>(name);
+    return plugin != nullptr;
   }
 
   template<typename T>
