@@ -47,7 +47,7 @@
 namespace vigir_pluginlib
 {
 class PluginManager
-  : boost::noncopyable
+  : private boost::noncopyable
 {
 public:
   // typedefs

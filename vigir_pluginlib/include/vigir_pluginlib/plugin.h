@@ -55,7 +55,7 @@ public:
 
 private:
   /**
-   * @brief Initialization of plugin itself, e.g. local parameter set.
+   * @brief Internal initialization of plugin itself, e.g. loading parameters.
    * @param nh Nodehandle the plugin
    * @param global_params global parameter set
    * @return true, if setup was successful
