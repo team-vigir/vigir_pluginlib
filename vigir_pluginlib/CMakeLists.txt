@@ -96,6 +96,7 @@ include_directories(include ${catkin_INCLUDE_DIRS} ${boost_INCLUDE_DIRS})
 
 ## Specify additional locations of header files
 set(HEADERS
+  include/${PROJECT_NAME}/plugin_aggregator.h
   include/${PROJECT_NAME}/plugin_loader_base.h
   include/${PROJECT_NAME}/plugin_loader.h
   include/${PROJECT_NAME}/plugin_manager.h

@@ -55,7 +55,7 @@ public:
 
 private:
   /**
-   * @brief Internal initialization of plugin itself, e.g. loading parameters.
+   * @brief Internal initialization of plugin itself, e.g. setting parameter namespaces.
    * @param nh Nodehandle the plugin
    * @param global_params global parameter set
    * @return true, if setup was successful
@@ -86,9 +86,10 @@ public:
   virtual bool loadParams(const vigir_generic_params::ParameterSet& /*global_params*/) { return true; }
 
   /**
-   * Used for automatically generate type ids for data types. Override _typeId()
+   * Used for automatically generate type ids for data types. Override _typeClass()
    * function to use custom type ids for derived data types!
-   * DO NOT OVERRIDE THIS METHOD! This wrapper prevents wrong usage, e.g. A::_typeId<B>().
+   * Usage: vigir_pluginlib::Plugin::getTypeClass<MyClass>()
+   * DO NOT OVERRIDE THIS METHOD! This wrapper prevents wrong usage, e.g. A::_typeClass<B>().
    */
   template <typename T>
   inline static std::string getTypeClass() { return T::template _typeClass<T>(); }
