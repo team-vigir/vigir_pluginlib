@@ -79,7 +79,8 @@ public:
   virtual bool postInitialize(const vigir_generic_params::ParameterSet& global_params = vigir_generic_params::ParameterSet()) { return true; }
 
   /**
-   * @brief Loads parameters from parameter set and rosparam server. This method will be automatically called by initialize.
+   * @brief Loads parameters from parameter set and rosparam server (!= plugin's dedicated parameters).
+   * This method will be automatically called by initialize.
    * @param global_params global parameter set
    * @return true, if loading parameters was successful
    */
@@ -131,7 +132,7 @@ protected:
   inline const vigir_generic_params::ParameterSet& getParams() const { return params_; }
 
   /**
-   * @brief Retrieves parameter from plugin's parameter set
+   * @brief Retrieves parameter from plugin's dedicated parameter set
    * @param name name of parameter
    * @param val [out] return variable for parameter
    * @param def default value
@@ -148,7 +149,7 @@ protected:
   }
 
   /**
-   * @brief Retrieves parameter from plugin's parameter set
+   * @brief Retrieves parameter from plugin's dedicated parameter set
    * @param name name of parameter
    * @param def default value
    * @param ignore_warnings When true no warnings will be printed out when param was not present
