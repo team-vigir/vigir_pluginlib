@@ -80,7 +80,7 @@ public:
 
   /**
    * @brief Loads parameters from parameter set and rosparam server (!= plugin's dedicated parameters).
-   * This method will be automatically called by initialize.
+   * This method will be automatically called by Plugin::initialize(...).
    * @param global_params global parameter set
    * @return true, if loading parameters was successful
    */

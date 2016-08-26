@@ -192,7 +192,7 @@ bool PluginManager::addPlugin(const msgs::PluginDescription& plugin_description,
   }
   catch (pluginlib::PluginlibException& e)
   {
-    ROS_ERROR("[PluginManager] Plugin (%s) of type_class '%s' failed to load for some reason. Error: %s", description.name.data.c_str(), description.type_class.data.c_str(), e.what());
+    ROS_ERROR("[PluginManager] Plugin (%s) of type_class '%s' failed to load for some reason. Error message: \n %s", description.name.data.c_str(), description.type_class.data.c_str(), e.what());
     return false;
   }
 
