@@ -39,6 +39,7 @@ void PluginManager::initialize(ros::NodeHandle& nh)
 
   // subscribe topics
   Instance()->add_plugin_sub_ = nh.subscribe("plugin_manager/add_plugin", 1, &PluginManager::addPlugin, Instance().get());
+  Instance()->load_plugin_set_sub_ = nh.subscribe("plugin_manager/load_plugin_set", 1, &PluginManager::loadPluginSet, Instance().get());
   Instance()->remove_plugin_sub_ = nh.subscribe("plugin_manager/remove_plugin", 1, &PluginManager::removePlugin, Instance().get());
 
   // publish topics
@@ -610,6 +611,11 @@ void PluginManager::publishPluginStateUpdate()
 void PluginManager::addPlugin(const msgs::PluginDescriptionConstPtr plugin_description)
 {
   addPlugin(*plugin_description);
+}
+
+void PluginManager::loadPluginSet(const std_msgs::StringConstPtr name)
+{
+  PluginManager::loadPluginSet(name->data);
 }
 
 void PluginManager::removePlugin(const msgs::PluginDescriptionConstPtr plugin_description)

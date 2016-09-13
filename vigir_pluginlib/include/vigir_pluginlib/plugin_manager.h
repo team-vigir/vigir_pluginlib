@@ -202,6 +202,12 @@ public:
 
   /// returns all plugins derived by class T in alphabetical order (name)
   template<typename T>
+  static bool getPlugins(std::vector<boost::shared_ptr<T> >& plugins)
+  {
+    return getPluginsByType<T>(plugins);
+  }
+
+  template<typename T>
   static bool getPluginsByType(std::vector<boost::shared_ptr<T> >& plugins)
   {
     plugins.clear();
@@ -315,6 +321,7 @@ protected:
 
   // subscriber
   void addPlugin(const msgs::PluginDescriptionConstPtr plugin_description);
+  void loadPluginSet(const std_msgs::StringConstPtr name);
   void removePlugin(const msgs::PluginDescriptionConstPtr plugin_description);
 
   // service calls
@@ -333,6 +340,7 @@ protected:
 
   // subscriber
   ros::Subscriber add_plugin_sub_;
+  ros::Subscriber load_plugin_set_sub_;
   ros::Subscriber remove_plugin_sub_;
 
   // publisher

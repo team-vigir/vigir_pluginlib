@@ -58,7 +58,7 @@ public:
   virtual void loadPlugins()
   {
     // get step cost estimator plugins
-    PluginManager::getPluginsByType(plugins_);
+    PluginManager::getPlugins(plugins_);
 
     if (plugins_.empty())
       ROS_WARN("[%s] loadPlugins: Couldn't find any plugin of type '%s'.", name_.c_str(), vigir_pluginlib::Plugin::getTypeClass<PluginClass>().c_str());
