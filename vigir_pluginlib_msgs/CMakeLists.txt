@@ -9,7 +9,7 @@ set(CMAKE_CXX_FLAGS "-std=c++11 ${CMAKE_CXX_FLAGS}")
 ## Find catkin macros and libraries
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
-find_package(catkin REQUIRED COMPONENTS roscpp actionlib_msgs actionlib message_generation std_msgs)
+find_package(catkin REQUIRED COMPONENTS roscpp actionlib_msgs actionlib message_generation std_msgs vigir_generic_params)
 
 ## System dependencies are found with CMake's conventions
 find_package(Boost REQUIRED COMPONENTS system)
@@ -52,6 +52,7 @@ generate_messages(
   DEPENDENCIES
   actionlib_msgs
   std_msgs
+  vigir_generic_params
 )
 
 ###################################
@@ -66,7 +67,7 @@ generate_messages(
 catkin_package(
   INCLUDE_DIRS include
   LIBRARIES vigir_pluginlib_msgs
-  CATKIN_DEPENDS roscpp actionlib_msgs actionlib message_runtime std_msgs
+  CATKIN_DEPENDS roscpp actionlib_msgs actionlib message_runtime std_msgs vigir_generic_params
 #  DEPENDS system_lib
 )
 
