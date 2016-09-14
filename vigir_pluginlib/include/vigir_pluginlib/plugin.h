@@ -135,31 +135,44 @@ protected:
    * @brief Retrieves parameter from plugin's dedicated parameter set
    * @param name name of parameter
    * @param val [out] return variable for parameter
-   * @param def default value
+   * @param def_val default value
    * @param ignore_warnings if true no warnings will be printed out when param was not present
    * @return true when parameter was found at rosparam
    */
   template<typename T>
-  bool getParam(const std::string& name, T& val, const T& def = T(), bool ignore_warnings = false) const
+  bool getParam(const std::string& name, T& val, const T& def_val, bool ignore_warnings = false) const
   {
     if (ignore_warnings && !params_.hasParam(name))
       return false;
 
-    return params_.getParam(name, val, def);
+    return params_.getParam(name, val, def_val);
   }
 
   /**
    * @brief Retrieves parameter from plugin's dedicated parameter set
    * @param name name of parameter
-   * @param def default value
+   * @param def_val default value
+   * @param ignore_warnings When true no warnings will be printed out when param was not present
+   * @return true when parameter was found at rosparam
+   */
+  template<typename T>
+  bool param(const std::string& name, T& val, const T& def_val, bool ignore_warnings = false) const
+  {
+    return getParam(name, val, def_val, ignore_warnings);
+  }
+
+  /**
+   * @brief Retrieves parameter from plugin's dedicated parameter set
+   * @param name name of parameter
+   * @param def_val default value
    * @param ignore_warnings When true no warnings will be printed out when param was not present
    * @return retrieved parameter if available, otherwise given default value
    */
   template<typename T>
-  T param(const std::string& name, const T& def = T(), bool ignore_warnings = false) const
+  T param(const std::string& name, const T& def_val, bool ignore_warnings = false) const
   {
     T result;
-    getParam(name, result, def, ignore_warnings);
+    getParam(name, result, def_val, ignore_warnings);
     return result;
   }
 
