@@ -77,12 +77,13 @@ public:
   static void initialize(ros::NodeHandle& nh);
 
   /**
-   * @brief Tries to extract plugin description from param server using the given name
+   * @brief Tries to extract plugin description from rosparam server using the given name
    * @param name Name of the plugin
    * @param plugin_description Output of extracted plugin description
+   * @param ns Namespace to lookup description from rosparam server
    * @return True if extraction was successful
    */
-  static bool autocompletePluginDescriptionByName(const std::string& name, msgs::PluginDescription& plugin_description);
+  static bool autocompletePluginDescriptionByName(const std::string& name, msgs::PluginDescription& plugin_description, const std::string& ns = std::string());
 
   /**
    * @brief Adds ClassLoader for a specific type of plugins
@@ -135,10 +136,11 @@ public:
    * @param name name of plugin to load
    * @param initialize if true then the plugin's initialize will be called
    * after instantiation
+   * @param auto_completion try to auto complete plugin description
    * @return false, if instantiation has failed, otherwise true
    */
-  static bool addPlugins(const std::vector<msgs::PluginDescription>& plugin_descriptions, bool initialize = true);
-  static bool addPlugin(const msgs::PluginDescription& plugin_description, bool initialize = true);
+  static bool addPlugins(const std::vector<msgs::PluginDescription>& plugin_descriptions, bool initialize = true, bool auto_completion = true);
+  static bool addPlugin(const msgs::PluginDescription& plugin_description, bool initialize = true, bool auto_completion = true);
   static bool addPluginByName(const std::string& name, bool initialize = true);
 
   template<typename PluginDerivedClass>
@@ -274,7 +276,7 @@ public:
   }
   static void removePluginsByTypeClass(const std::string& type_class);
 
-  static bool loadPluginSet(const std::vector<msgs::PluginDescription>& plugin_descriptions);
+  static bool loadPluginSet(const std::vector<msgs::PluginDescription>& plugin_descriptions, bool auto_completion = true);
   static bool loadPluginSet(const std::string& name);
 
   static bool hasPlugin(Plugin::Ptr& plugin);

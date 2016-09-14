@@ -50,19 +50,6 @@ bool Plugin::setup(ros::NodeHandle& nh, const vigir_generic_params::ParameterSet
 {
   setNodehandle(nh);
 
-  // reinitialize plugin's local parameter set
-  std::string public_ns = description_.public_param_ns.data + "/params";
-  std::string private_ns = description_.private_param_ns.data + "/params";
-
-  // get parameters from rosparam server
-  vigir_generic_params::ParameterSet params;
-  if (nh.hasParam(public_ns))
-    params.updateFromXmlRpcValue(nh.param(public_ns, XmlRpc::XmlRpcValue()));
-  if (nh.hasParam(private_ns))
-    params.updateFromXmlRpcValue(nh.param(private_ns, XmlRpc::XmlRpcValue()));
-
-  setParams(params);
-
   return true;
 }
 
@@ -109,6 +96,7 @@ const std::string& Plugin::getBaseClass() const
 void Plugin::updateDescription(const msgs::PluginDescription& description)
 {
   description_ = description;
+  setParams(vigir_generic_params::ParameterSet(description_.params));
 }
 
 void Plugin::setNodehandle(const ros::NodeHandle& nh)

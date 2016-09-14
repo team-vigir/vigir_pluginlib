@@ -44,12 +44,10 @@
 
   <build_depend>roscpp</build_depend>
   <build_depend>pluginlib</build_depend>
-  <build_depend>vigir_generic_params</build_depend>
   <build_depend>vigir_pluginlib_msgs</build_depend>
 
   <run_depend>roscpp</run_depend>
   <run_depend>pluginlib</run_depend>
-  <run_depend>vigir_generic_params</run_depend>
   <run_depend>vigir_pluginlib_msgs</run_depend>
 
 
