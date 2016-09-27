@@ -143,7 +143,10 @@ protected:
   bool getParam(const std::string& name, T& val, const T& def_val, bool ignore_warnings = false) const
   {
     if (ignore_warnings && !params_.hasParam(name))
+    {
+      val = def_val;
       return false;
+    }
 
     return params_.getParam(name, val, def_val);
   }
