@@ -133,50 +133,43 @@ protected:
 
   /**
    * @brief Retrieves parameter from plugin's dedicated parameter set
-   * @param name name of parameter
-   * @param val [out] return variable for parameter
-   * @param def_val default value
-   * @param ignore_warnings if true no warnings will be printed out when param was not present
-   * @return true when parameter was found at rosparam
+   * @param key key of parameter
+   * @param p [out] return variable for parameter
+   * @param default_val default value
+   * @param ignore_warnings (default = false) When set to true, no warnings will be printed if param is not available
+   * @return true when parameter was found
    */
   template<typename T>
-  bool getParam(const std::string& name, T& val, const T& def_val, bool ignore_warnings = false) const
+  inline bool getParam(const std::string& key, T& p, const T& default_val, bool ignore_warnings = false) const
   {
-    if (ignore_warnings && !params_.hasParam(name))
-    {
-      val = def_val;
-      return false;
-    }
-
-    return params_.getParam(name, val, def_val);
+    return params_.getParam(key, p, default_val, ignore_warnings);
   }
 
   /**
    * @brief Retrieves parameter from plugin's dedicated parameter set
-   * @param name name of parameter
-   * @param def_val default value
-   * @param ignore_warnings When true no warnings will be printed out when param was not present
-   * @return true when parameter was found at rosparam
+   * @param key key of parameter
+   * @param p [out] return variable for parameter
+   * @param default_val default value
+   * @param ignore_warnings (default = false) When set to true, no warnings will be printed if param is not available
+   * @return true when parameter was found
    */
   template<typename T>
-  bool param(const std::string& name, T& val, const T& def_val, bool ignore_warnings = false) const
+  inline bool param(const std::string& key, T& p, const T& default_val, bool ignore_warnings = false) const
   {
-    return getParam(name, val, def_val, ignore_warnings);
+    return params_.param(key, p, default_val, ignore_warnings);
   }
 
   /**
    * @brief Retrieves parameter from plugin's dedicated parameter set
-   * @param name name of parameter
-   * @param def_val default value
-   * @param ignore_warnings When true no warnings will be printed out when param was not present
+   * @param key key of parameter
+   * @param default_val default value
+   * @param ignore_warnings (default = false) When set to true, no warnings will be printed if param is not available
    * @return retrieved parameter if available, otherwise given default value
    */
   template<typename T>
-  T param(const std::string& name, const T& def_val, bool ignore_warnings = false) const
+  inline T param(const std::string& key, const T& default_val, bool ignore_warnings = false) const
   {
-    T result;
-    getParam(name, result, def_val, ignore_warnings);
-    return result;
+    return params_.param(key, default_val, ignore_warnings);
   }
 
   ros::NodeHandle nh_;
