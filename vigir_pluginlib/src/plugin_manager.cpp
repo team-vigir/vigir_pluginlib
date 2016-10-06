@@ -71,7 +71,7 @@ bool PluginManager::autocompletePluginDescriptionByName(const std::string& name,
 {
   try
   {
-    ros::NodeHandle plugin_nh(Instance()->nh_, ns.empty() ? name : ns + "/" + name);
+    ros::NodeHandle plugin_nh(Instance()->nh_, ns.empty() ? name : ros::names::append(ns, name));
 
     // import recursively all properties
     bool imported = false;
@@ -591,11 +591,11 @@ bool PluginManager::getPluginDescription(const std::string& key, msgs::PluginDes
     return false;
   }
 
-  Instance()->nh_.getParam(key + "/name", description.name.data);
-  Instance()->nh_.getParam(key + "/type_class", description.type_class.data);
-  Instance()->nh_.getParam(key + "/type_class_package", description.type_class_package.data);
-  Instance()->nh_.getParam(key + "/base_class", description.base_class.data);
-  Instance()->nh_.getParam(key + "/base_class_package", description.base_class_package.data);
+  Instance()->nh_.getParam(ros::names::append(key, "name"), description.name.data);
+  Instance()->nh_.getParam(ros::names::append(key, "type_class"), description.type_class.data);
+  Instance()->nh_.getParam(ros::names::append(key, "type_class_package"), description.type_class_package.data);
+  Instance()->nh_.getParam(ros::names::append(key, "base_class"), description.base_class.data);
+  Instance()->nh_.getParam(ros::names::append(key, "base_class_package"), description.base_class_package.data);
 
   return !description.name.data.empty() || !description.type_class.data.empty();
 }
