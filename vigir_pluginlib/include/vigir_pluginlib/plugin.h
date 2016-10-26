@@ -127,7 +127,7 @@ protected:
 
   /**
    * @brief Returns parameter set of plugin
-   * @return parameter set of pluign
+   * @return parameter set of plugin
    */
   inline const vigir_generic_params::ParameterSet& getParams() const { return params_; }
 
