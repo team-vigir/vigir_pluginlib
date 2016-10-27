@@ -23,7 +23,7 @@ PluginManager::Ptr PluginManager::Instance()
 
 PluginManager::~PluginManager()
 {
-  boost::unique_lock<boost::shared_mutex> lock(plugins_mutex_);
+  nh_.shutdown();
 
   // prevents warning when ClassLoaders get destroyed
   plugins_by_name_.clear();
@@ -38,26 +38,26 @@ void PluginManager::initialize(ros::NodeHandle& nh)
   Instance()->nh_ = nh;
 
   // subscribe topics
-  Instance()->add_plugin_sub_ = nh.subscribe("plugin_manager/add_plugin", 1, &PluginManager::addPlugin, Instance().get());
-  Instance()->load_plugin_set_sub_ = nh.subscribe("plugin_manager/load_plugin_set", 1, &PluginManager::loadPluginSet, Instance().get());
-  Instance()->remove_plugin_sub_ = nh.subscribe("plugin_manager/remove_plugin", 1, &PluginManager::removePlugin, Instance().get());
+  Instance()->add_plugin_sub_ = Instance()->nh_.subscribe("plugin_manager/add_plugin", 1, &PluginManager::addPlugin, Instance().get());
+  Instance()->load_plugin_set_sub_ = Instance()->nh_.subscribe("plugin_manager/load_plugin_set", 1, &PluginManager::loadPluginSet, Instance().get());
+  Instance()->remove_plugin_sub_ = Instance()->nh_.subscribe("plugin_manager/remove_plugin", 1, &PluginManager::removePlugin, Instance().get());
 
   // publish topics
-  Instance()->plugin_states_pub_ = nh.advertise<msgs::PluginStates>("plugin_manager/plugin_states_update", 1);
+  Instance()->plugin_states_pub_ = Instance()->nh_.advertise<msgs::PluginStates>("plugin_manager/plugin_states_update", 1);
 
   // start own services
-  Instance()->get_plugin_descriptions_srv_ = nh.advertiseService("plugin_manager/get_plugin_descriptions", &PluginManager::getPluginDescriptionsService, Instance().get());
-  Instance()->get_plugin_states_srv_ = nh.advertiseService("plugin_manager/get_plugin_states", &PluginManager::getPluginStatesService, Instance().get());
-  Instance()->add_plugin_srv_ = nh.advertiseService("plugin_manager/add_plugin", &PluginManager::addPluginService, Instance().get());
-  Instance()->remove_plugin_srv_ = nh.advertiseService("plugin_manager/remove_plugin", &PluginManager::removePluginService, Instance().get());
-  Instance()->load_plugin_set_srv_ = nh.advertiseService("plugin_manager/load_plugin_set", &PluginManager::loadPluginSetService, Instance().get());
+  Instance()->get_plugin_descriptions_srv_ = Instance()->nh_.advertiseService("plugin_manager/get_plugin_descriptions", &PluginManager::getPluginDescriptionsService, Instance().get());
+  Instance()->get_plugin_states_srv_ = Instance()->nh_.advertiseService("plugin_manager/get_plugin_states", &PluginManager::getPluginStatesService, Instance().get());
+  Instance()->add_plugin_srv_ = Instance()->nh_.advertiseService("plugin_manager/add_plugin", &PluginManager::addPluginService, Instance().get());
+  Instance()->remove_plugin_srv_ = Instance()->nh_.advertiseService("plugin_manager/remove_plugin", &PluginManager::removePluginService, Instance().get());
+  Instance()->load_plugin_set_srv_ = Instance()->nh_.advertiseService("plugin_manager/load_plugin_set", &PluginManager::loadPluginSetService, Instance().get());
 
   // init action servers
-  Instance()->get_plugin_descriptions_as_.reset(new GetPluginDescriptionsActionServer(nh, "plugin_manager/get_plugin_descriptions", boost::bind(&PluginManager::getPluginDescriptionsAction, Instance().get(), _1), false));
-  Instance()->get_plugin_states_as_.reset(new GetPluginStatesActionServer(nh, "plugin_manager/get_plugin_states", boost::bind(&PluginManager::getPluginStatesAction, Instance().get(), _1), false));
-  Instance()->add_plugin_as_.reset(new PluginManagementActionServer(nh, "plugin_manager/add_plugin", boost::bind(&PluginManager::addPluginAction, Instance().get(), _1), false));
-  Instance()->remove_plugin_as_.reset(new PluginManagementActionServer(nh, "plugin_manager/remove_plugin", boost::bind(&PluginManager::removePluginAction, Instance().get(), _1), false));
-  Instance()->load_plugin_set_as_.reset(new PluginManagementActionServer(nh, "plugin_manager/load_plugin_set", boost::bind(&PluginManager::loadPluginSetAction, Instance().get(), _1), false));
+  Instance()->get_plugin_descriptions_as_.reset(new GetPluginDescriptionsActionServer(Instance()->nh_, "plugin_manager/get_plugin_descriptions", boost::bind(&PluginManager::getPluginDescriptionsAction, Instance().get(), _1), false));
+  Instance()->get_plugin_states_as_.reset(new GetPluginStatesActionServer(Instance()->nh_, "plugin_manager/get_plugin_states", boost::bind(&PluginManager::getPluginStatesAction, Instance().get(), _1), false));
+  Instance()->add_plugin_as_.reset(new PluginManagementActionServer(Instance()->nh_, "plugin_manager/add_plugin", boost::bind(&PluginManager::addPluginAction, Instance().get(), _1), false));
+  Instance()->remove_plugin_as_.reset(new PluginManagementActionServer(Instance()->nh_, "plugin_manager/remove_plugin", boost::bind(&PluginManager::removePluginAction, Instance().get(), _1), false));
+  Instance()->load_plugin_set_as_.reset(new PluginManagementActionServer(Instance()->nh_, "plugin_manager/load_plugin_set", boost::bind(&PluginManager::loadPluginSetAction, Instance().get(), _1), false));
 
   // start action servers
   Instance()->get_plugin_descriptions_as_->start();

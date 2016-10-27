@@ -309,7 +309,7 @@ protected:
   // mutex to ensure thread safeness
   mutable boost::shared_mutex plugins_mutex_;
 
-  // nodehandle (namespace) to be used
+  // node handle (namespace) to be used
   ros::NodeHandle nh_;
 
   // class loader
