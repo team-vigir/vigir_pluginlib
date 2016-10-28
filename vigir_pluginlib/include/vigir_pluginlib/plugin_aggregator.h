@@ -53,6 +53,14 @@ public:
     : name_(name) {}
 
   /**
+   * @brief Clears internal collection of all plugins
+   */
+  virtual void clear()
+  {
+    plugins_.clear();
+  }
+
+  /**
    * @brief Collects all plugins from PluginManager matching the type T.
    */
   virtual void loadPlugins()
