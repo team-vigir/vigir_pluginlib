@@ -57,34 +57,34 @@ private:
   /**
    * @brief Internal initialization of plugin itself, e.g. setting parameter namespaces.
    * @param nh Nodehandle the plugin
-   * @param global_params global parameter set
+   * @param params active parameter set taken from ParameterManager
    * @return true, if setup was successful
    */
-  bool setup(ros::NodeHandle& nh, const vigir_generic_params::ParameterSet& global_params = vigir_generic_params::ParameterSet());
+  bool setup(ros::NodeHandle& nh, const vigir_generic_params::ParameterSet& params = vigir_generic_params::ParameterSet());
 
 public:
   /**
+   * @brief Loads parameters from parameter set and rosparam server (!= plugin's dedicated parameters).
+   * This method will be automatically called before Plugin::initialize(...).
+   * @param params active parameter set taken from ParameterManager
+   * @return true, if loading parameters was successful
+   */
+  virtual bool loadParams(const vigir_generic_params::ParameterSet& params = vigir_generic_params::ParameterSet()) { return true; }
+
+  /**
    * @brief Initialization of plugin specific features.
-   * @param global_params global parameter set
+   * @param params active parameter set taken from ParameterManager
    * @return true when initialization was successful
    */
-  virtual bool initialize(const vigir_generic_params::ParameterSet& global_params = vigir_generic_params::ParameterSet()) { return loadParams(global_params); }
+  virtual bool initialize(const vigir_generic_params::ParameterSet& params = vigir_generic_params::ParameterSet()) { return true; }
 
   /**
    * @brief Called after initialization of this and other plugins has been completed.
    * At this point other plugins can be used safely.
-   * @param global_params global parameter set
+   * @param params active parameter set taken from ParameterManager
    * @return true, if post initialization was successful
    */
-  virtual bool postInitialize(const vigir_generic_params::ParameterSet& global_params = vigir_generic_params::ParameterSet()) { return true; }
-
-  /**
-   * @brief Loads parameters from parameter set and rosparam server (!= plugin's dedicated parameters).
-   * This method will be automatically called by Plugin::initialize(...).
-   * @param global_params global parameter set
-   * @return true, if loading parameters was successful
-   */
-  virtual bool loadParams(const vigir_generic_params::ParameterSet& /*global_params*/) { return true; }
+  virtual bool postInitialize(const vigir_generic_params::ParameterSet& params = vigir_generic_params::ParameterSet()) { return true; }
 
   /**
    * Used for automatically generate type ids for data types. Override _typeClass()

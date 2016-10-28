@@ -148,6 +148,8 @@ bool PluginManager::addPlugins(const std::vector<msgs::PluginDescription>& plugi
   if (initialize)
   {
     for (Plugin::Ptr plugin : plugins)
+      success &= plugin->loadParams(ParameterManager::getActive());
+    for (Plugin::Ptr plugin : plugins)
       success &= plugin->initialize(ParameterManager::getActive());
     for (Plugin::Ptr plugin : plugins)
       success &= plugin->postInitialize(ParameterManager::getActive());
@@ -277,7 +279,10 @@ void PluginManager::addPlugin(Plugin::Ptr plugin, bool initialize)
 
     plugin->setup(Instance()->nh_, ParameterManager::getActive());
 
-    if (initialize && !(plugin->initialize(ParameterManager::getActive()) && plugin->postInitialize(ParameterManager::getActive())))
+    if (initialize &&
+        !(plugin->loadParams(ParameterManager::getActive()) &&
+          plugin->initialize(ParameterManager::getActive()) &&
+          plugin->postInitialize(ParameterManager::getActive())))
       ROS_ERROR("[PluginManager] addPlugin: Initialization of Plugin '%s' with type_class '%s' failed!", plugin->getName().c_str(), plugin->getTypeClass().c_str());
 
     Instance()->loaded_plugin_set_.clear();
@@ -494,6 +499,8 @@ bool PluginManager::loadPluginSet(const std::vector<msgs::PluginDescription>& pl
     success = false;
 
   // reinitialize plugins which has been updated before
+  for (Plugin::Ptr plugin : updated_plugins)
+    success &= plugin->loadParams(ParameterManager::getActive());
   for (Plugin::Ptr plugin : updated_plugins)
     success &= plugin->initialize(ParameterManager::getActive());
   for (Plugin::Ptr plugin : updated_plugins)

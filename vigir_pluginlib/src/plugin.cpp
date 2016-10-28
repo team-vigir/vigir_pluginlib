@@ -47,7 +47,7 @@ Plugin::~Plugin()
   nh_.shutdown();
 }
 
-bool Plugin::setup(ros::NodeHandle& nh, const vigir_generic_params::ParameterSet& /*global_params*/)
+bool Plugin::setup(ros::NodeHandle& nh, const vigir_generic_params::ParameterSet& /*params*/)
 {
   setNodehandle(nh);
 
