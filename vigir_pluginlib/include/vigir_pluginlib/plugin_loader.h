@@ -172,7 +172,7 @@ public:
    * @param lookup_name The lookup name of the class to load
    * @exception pluginlib::LibraryLoadException Thrown if the library for the class cannot be loaded
    */
-  void loadLibraryForClass(const std::string & lookup_name) override
+  void loadLibraryForClass(const std::string& lookup_name) override
   {
     return pluginlib::ClassLoader<T>::loadLibraryForClass(lookup_name);
   }
