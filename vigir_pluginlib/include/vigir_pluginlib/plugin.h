@@ -55,7 +55,7 @@ public:
 
 private:
   /**
-   * @brief Internal initialization of plugin itself, e.g. setting parameter namespaces.
+   * @brief Internal initialization of plugin itself.
    * @param nh Nodehandle the plugin
    * @param params active parameter set taken from ParameterManager
    * @return true, if setup was successful
