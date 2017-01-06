@@ -67,27 +67,40 @@ void PluginManager::initialize(ros::NodeHandle& nh)
   Instance()->load_plugin_set_as_->start();
 }
 
-bool PluginManager::autocompletePluginDescriptionByName(const std::string& name, msgs::PluginDescription& plugin_description, const std::string& ns)
+bool PluginManager::autocompletePluginDescriptionByName(msgs::PluginDescription& plugin_description, const std::string& name, const std::string& ns)
 {
   try
   {
     ros::NodeHandle plugin_nh(Instance()->nh_, ns.empty() ? name : ros::names::append(ns, name));
 
-    // import recursively all properties
+    // update parameters of plugin if given
+    if (plugin_nh.hasParam("params"))
+    {
+      // given parameters in description have higher priority: Load inherited params and override them with exisiting params.
+      vigir_generic_params::ParameterSet params;
+      params.updateFromXmlRpcValue(plugin_nh.param("params", XmlRpc::XmlRpcValue()));
+      params.updateFromMsg(plugin_description.params);
+      params.toMsg(plugin_description.params);
+    }
+
+    // handle complex import rules
     bool imported = false;
     std::string import_name;
-    if (plugin_nh.getParam("import", import_name))
+    if (plugin_nh.getParam("import", import_name)) // check for import declaration
     {
+      // load description from transitive imports
       if (!ns.empty())
-        imported = autocompletePluginDescriptionByName(import_name, plugin_description, ns);
-      imported |= autocompletePluginDescriptionByName(import_name, plugin_description);
+        imported = autocompletePluginDescriptionByName(plugin_description, import_name, ns);
+      // load base plugin description
+      imported |= autocompletePluginDescriptionByName(plugin_description, import_name);
 
       if (!imported)
         ROS_WARN("[PluginManager] addPlugin: Import '%s' for plugin (%s) failed!", import_name.c_str(), plugin_description.name.data.c_str());
     }
-    else if (!ns.empty()) // check override case
+    // handle simple (parameter) override case
+    else if (!ns.empty())
     {
-      if (autocompletePluginDescriptionByName(name, plugin_description))
+      if (autocompletePluginDescriptionByName(plugin_description, name))
         imported = true;
     }
 
@@ -110,14 +123,6 @@ bool PluginManager::autocompletePluginDescriptionByName(const std::string& name,
         plugin_nh.param("base_class_package", plugin_description.base_class_package.data, std::string());
       if (plugin_description.base_class.data.empty())
         plugin_nh.param("base_class", plugin_description.base_class.data, std::string());
-    }
-
-    // update parameters of plugin if given
-    if (plugin_nh.hasParam("params"))
-    {
-      vigir_generic_params::ParameterSet params(plugin_description.params);
-      params.updateFromXmlRpcValue(plugin_nh.param("params", XmlRpc::XmlRpcValue()));
-      params.toMsg(plugin_description.params);
     }
   }
   catch (std::exception& e)
@@ -169,7 +174,7 @@ bool PluginManager::addPlugin(const msgs::PluginDescription& plugin_description,
       ROS_ERROR("[PluginManager] addPlugin: Call without name (%s) or type class package (%s) and type class (%s)!", description.name.data.c_str(), description.type_class_package.data.c_str(), description.type_class.data.c_str());
       return false;
     }
-    else if (auto_completion && !autocompletePluginDescriptionByName(description.name.data, description))
+    else if (auto_completion && !autocompletePluginDescriptionByName(description, description.name.data))
     {
       ROS_ERROR("[PluginManager] addPlugin: Can't autocomplete plugin description for (%s)!", description.name.data.c_str());
       return false;
@@ -541,7 +546,7 @@ bool PluginManager::loadPluginSet(const std::string& name)
   {
     msgs::PluginDescription description;
     description.name.data = kv.first;
-    autocompletePluginDescriptionByName(description.name.data, description, prefix);
+    autocompletePluginDescriptionByName(description, description.name.data, prefix);
     plugin_descriptions.push_back(description);
   }
 

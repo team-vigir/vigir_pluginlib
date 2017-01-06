@@ -78,12 +78,12 @@ public:
 
   /**
    * @brief Tries to extract plugin description from rosparam server using the given name
+   * @param plugin_description [output] Output of extracted plugin description
    * @param name Name of the plugin
-   * @param plugin_description Output of extracted plugin description
    * @param ns Namespace to lookup description from rosparam server
    * @return True if extraction was successful
    */
-  static bool autocompletePluginDescriptionByName(const std::string& name, msgs::PluginDescription& plugin_description, const std::string& ns = std::string());
+  static bool autocompletePluginDescriptionByName(msgs::PluginDescription& plugin_description, const std::string& name, const std::string& ns = std::string());
 
   /**
    * @brief Adds ClassLoader for a specific type of plugins
