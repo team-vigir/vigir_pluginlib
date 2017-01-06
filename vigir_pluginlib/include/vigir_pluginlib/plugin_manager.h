@@ -299,6 +299,12 @@ public:
   }
   static bool hasPluginsByTypeClass(const std::string& type_class);
 
+  template<typename T>
+  static bool hasPluginByNameAndType(const std::string& name)
+  {
+    return boost::dynamic_pointer_cast<T>(getPluginByName(name)) != nullptr;
+  }
+
   static void loadParams(const vigir_generic_params::ParameterSet& params);
 
 protected:
