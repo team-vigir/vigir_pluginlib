@@ -73,21 +73,25 @@ bool PluginManager::autocompletePluginDescriptionByName(msgs::PluginDescription&
   {
     ros::NodeHandle plugin_nh(Instance()->nh_, ns.empty() ? name : ros::names::append(ns, name));
 
+    vigir_generic_params::ParameterSet params;
+
     // update parameters of plugin if given
     if (plugin_nh.hasParam("params"))
     {
       // given parameters in description have higher priority: Load inherited params and override them with exisiting params.
-      vigir_generic_params::ParameterSet params;
       params.updateFromXmlRpcValue(plugin_nh.param("params", XmlRpc::XmlRpcValue()));
       params.updateFromMsg(plugin_description.params);
       params.toMsg(plugin_description.params);
     }
+    else
+      params.updateFromMsg(plugin_description.params);
 
     // handle import rules
     bool imported = false;
     std::string import_name;
-    if ((plugin_nh.getParam("", import_name) && import_name != "none") || // Implicit import: 'my_plugin: imported_plugin'
-         plugin_nh.getParam("import", import_name)) // explicit import
+    if ((params.getParam("import", import_name, std::string(), true) && import_name != name)  ||  // explicit import defined by input parameter
+        (plugin_nh.getParam("", import_name) && import_name != "none")                        ||  // implicit import by config file: 'my_plugin: imported_plugin'
+         plugin_nh.getParam("import", import_name))                                               // explicit import by config file
     {
       // load description from transitive imports
       if (!ns.empty())
