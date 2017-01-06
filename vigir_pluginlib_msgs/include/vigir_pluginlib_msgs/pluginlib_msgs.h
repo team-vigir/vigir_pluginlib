@@ -76,4 +76,30 @@ std::vector<msgs::PluginDescription> filterDescriptionList(const std::vector<msg
 std::vector<msgs::PluginDescription> filterDescriptionList(const std::vector<msgs::PluginDescription>& plugin_descriptions, const std::vector<msgs::PluginDescription>& filter_list, bool inverse = false);
 }
 
+namespace std
+{
+/**
+ * @brief Template specialization for std::less to enable stricted order of plugin descriptions.
+ * The strict order property enables to use plugin descriptions as key for std map.
+ */
+template<> struct less<vigir_pluginlib_msgs::PluginDescription>
+{
+  bool operator() (const vigir_pluginlib_msgs::PluginDescription& lhs, const vigir_pluginlib_msgs::PluginDescription& rhs) const
+  {
+    if (lhs.name.data != rhs.name.data)
+      return lhs.name.data < rhs.name.data;
+    else if (lhs.type_class.data != rhs.type_class.data)
+      return lhs.type_class.data < rhs.type_class.data;
+    else if (lhs.type_class_package.data != rhs.type_class_package.data)
+      return lhs.type_class_package.data < rhs.type_class_package.data;
+    else if (lhs.base_class.data != rhs.base_class.data)
+      return lhs.base_class.data < rhs.base_class.data;
+    else if (lhs.base_class_package.data != rhs.base_class_package.data)
+      return lhs.base_class_package.data < rhs.base_class_package.data;
+    else
+      return false;
+  }
+};
+}
+
 #endif
