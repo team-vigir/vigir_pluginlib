@@ -83,10 +83,11 @@ bool PluginManager::autocompletePluginDescriptionByName(msgs::PluginDescription&
       params.toMsg(plugin_description.params);
     }
 
-    // handle complex import rules
+    // handle import rules
     bool imported = false;
     std::string import_name;
-    if (plugin_nh.getParam("import", import_name)) // check for import declaration
+    if ((plugin_nh.getParam("", import_name) && import_name != "none") || // Implicit import: 'my_plugin: imported_plugin'
+         plugin_nh.getParam("import", import_name)) // explicit import
     {
       // load description from transitive imports
       if (!ns.empty())
