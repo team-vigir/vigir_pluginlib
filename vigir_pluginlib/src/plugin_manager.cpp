@@ -258,6 +258,7 @@ void PluginManager::addPlugin(Plugin::Ptr plugin, bool initialize)
     return;
   }
 
+  {
   boost::upgrade_lock<boost::shared_mutex> lock(Instance()->plugins_mutex_);
 
   std::map<std::string, Plugin::Ptr>::iterator itr = Instance()->plugins_by_name_.find(plugin->getName());
@@ -284,8 +285,12 @@ void PluginManager::addPlugin(Plugin::Ptr plugin, bool initialize)
     ROS_INFO("[PluginManager] addPlugin: Added new plugin '%s' with type_class '%s'", plugin->getName().c_str(), plugin->getTypeClass().c_str());
 
   {
+    {
     boost::upgrade_to_unique_lock<boost::shared_mutex> uniqueLock(lock);
     Instance()->plugins_by_name_[plugin->getName()] = plugin;
+    Instance()->loaded_plugin_set_.clear();
+    }
+    lock.unlock();
 
     plugin->setup(Instance()->nh_, ParameterManager::getActive());
 
@@ -294,8 +299,7 @@ void PluginManager::addPlugin(Plugin::Ptr plugin, bool initialize)
           plugin->initialize(ParameterManager::getActive()) &&
           plugin->postInitialize(ParameterManager::getActive())))
       ROS_ERROR("[PluginManager] addPlugin: Initialization of Plugin '%s' with type_class '%s' failed!", plugin->getName().c_str(), plugin->getTypeClass().c_str());
-
-    Instance()->loaded_plugin_set_.clear();
+  }
   }
 
   // publish update
@@ -431,6 +435,7 @@ bool PluginManager::removePlugin(const msgs::PluginDescription& plugin_descripti
 
 bool PluginManager::removePluginByName(const std::string& name)
 {
+  {
   boost::upgrade_lock<boost::shared_mutex> lock(Instance()->plugins_mutex_);
 
   std::map<std::string, Plugin::Ptr>::iterator itr = Instance()->plugins_by_name_.find(name);
@@ -443,6 +448,7 @@ bool PluginManager::removePluginByName(const std::string& name)
     Instance()->plugins_by_name_.erase(itr);
 
     Instance()->loaded_plugin_set_.clear();
+  }
   }
 
   // publish update
@@ -619,6 +625,7 @@ bool PluginManager::getPluginDescription(const std::string& key, msgs::PluginDes
 
 void PluginManager::publishPluginStateUpdate()
 {
+  boost::shared_lock<boost::shared_mutex> lock(Instance()->plugins_mutex_);
   msgs::PluginStates plugin_states;
   getPluginStates(plugin_states.states);
   plugin_states_pub_.publish(plugin_states);

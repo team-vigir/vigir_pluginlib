@@ -66,7 +66,7 @@ public:
   /**
    * @brief Loads parameters from parameter set and rosparam server (!= plugin's dedicated parameters).
    * This method will be automatically called before Plugin::initialize(...).
-   * @param params active parameter set taken from ParameterManager
+   * @param params active global parameter set taken from ParameterManager
    * @return true, if loading parameters was successful
    */
   virtual bool loadParams(const vigir_generic_params::ParameterSet& params = vigir_generic_params::ParameterSet()) { return true; }
