@@ -69,7 +69,7 @@ public:
     PluginManager::getPlugins(plugins_);
 
     if (plugins_.empty())
-      ROS_WARN("[%s] loadPlugins: Couldn't find any plugin of type '%s'.", name_.c_str(), vigir_pluginlib::Plugin::getTypeClass<PluginClass>().c_str());
+      ROS_WARN("[%s] loadPlugins: Couldn't find any plugin of type '%s'.", name_.c_str(), vigir_pluginlib::TypeClass::get<PluginClass>().c_str());
     else
     {
       ROS_INFO("[%s] Plugins loaded:", name_.c_str());

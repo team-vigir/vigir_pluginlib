@@ -39,8 +39,6 @@
 
 namespace vigir_pluginlib
 {
-std::string demangle(const char* name);
-
 class Plugin
 {
 public:
@@ -86,14 +84,11 @@ public:
    */
   virtual bool postInitialize(const vigir_generic_params::ParameterSet& params = vigir_generic_params::ParameterSet()) { return true; }
 
-  /**
-   * Used for automatically generate type ids for data types. Override _typeClass()
-   * function to use custom type ids for derived data types!
-   * Usage: vigir_pluginlib::Plugin::getTypeClass<MyClass>()
-   * DO NOT OVERRIDE THIS METHOD! This wrapper prevents wrong usage, e.g. A::_typeClass<B>().
-   */
-  template <typename T>
-  inline static std::string getTypeClass() { return T::template _typeClass<T>(); }
+ /**
+  * @brief Returns class type string of plugin. If custom class type string should be used, then partial specialization
+  * of TypeClass::get(...) is required (see type_class_traits.h).
+  * @return determined type class as string
+  */
   const std::string& getTypeClass() const;
 
   const msgs::PluginDescription& getDescription() const;
@@ -113,12 +108,6 @@ public:
   friend class PluginManager;
 
 protected:
-  /**
-   * Used internally for automatically generate type ids for data types.
-   */
-  template <typename T>
-  inline static std::string _typeClass(T* t = nullptr) { return demangle(t ? typeid(*t).name() : typeid(T).name()); }
-
   /**
    * @brief Updates plugin description
    * @param description new description

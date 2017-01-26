@@ -101,12 +101,14 @@ set(HEADERS
   include/${PROJECT_NAME}/plugin_loader.h
   include/${PROJECT_NAME}/plugin_manager.h
   include/${PROJECT_NAME}/plugin.h
+  include/${PROJECT_NAME}/type_class_traits.h
 )
 
 set(SOURCES
   src/plugin_loader_base.cpp
   src/plugin_manager.cpp
   src/plugin.cpp
+  src/type_class_traits.cpp
 )
 
 ## Declare a cpp library

@@ -39,6 +39,7 @@
 
 #include <vigir_pluginlib/plugin_loader.h>
 #include <vigir_pluginlib/plugin.h>
+#include <vigir_pluginlib/type_class_traits.h>
 
 #include <vigir_pluginlib_msgs/pluginlib_msgs.h>
 
@@ -164,7 +165,7 @@ public:
       if (plugin)
         return plugin;
 
-      ROS_ERROR("[PluginManager] Couldn't find any matching plugin named '%s' of type '%s'!", name.c_str(), Plugin::getTypeClass<T>().c_str());
+      ROS_ERROR("[PluginManager] Couldn't find any matching plugin named '%s' of type '%s'!", name.c_str(), TypeClass::get<T>().c_str());
     }
     // type specific search
     else
@@ -178,7 +179,7 @@ public:
           return plugin;
       }
 
-      ROS_ERROR("[PluginManager] Couldn't find any matching plugin of type '%s'!", Plugin::getTypeClass<T>().c_str());
+      ROS_ERROR("[PluginManager] Couldn't find any matching plugin of type '%s'!", TypeClass::get<T>().c_str());
     }
 
     return boost::shared_ptr<T>();
