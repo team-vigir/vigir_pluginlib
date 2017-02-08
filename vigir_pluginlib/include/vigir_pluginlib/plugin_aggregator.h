@@ -65,7 +65,7 @@ public:
    */
   virtual void loadPlugins()
   {
-    // get step cost estimator plugins
+    // get plugins
     PluginManager::getPlugins(plugins_);
 
     if (plugins_.empty())

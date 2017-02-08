@@ -121,6 +121,16 @@ protected:
   inline const vigir_generic_params::ParameterSet& getParams() const { return params_; }
 
   /**
+   * @brief Determines if param with given key exists in set.
+   * @param key parameter name
+   * @return true if parameter with given key exists
+   */
+  inline bool hasParam(const std::string& key) const
+  {
+    return params_.hasParam(key);
+  }
+
+  /**
    * @brief Retrieves parameter from plugin's dedicated parameter set
    * @param key key of parameter
    * @param p [out] return variable for parameter
