@@ -105,6 +105,18 @@ public:
    **/
   virtual bool isUnique() const { return true; }
 
+  /**
+   * @brief Updates parameter from plugin's dedicated parameter set
+   * @param key key of parameter
+   * @param val new value for parametr
+   * @param default_val default value
+   */
+  template<typename T>
+  void updateParam(const std::string& key, const T& val)
+  {
+    params_.setParam(key, val);
+  }
+
   friend class PluginManager;
 
 protected:
