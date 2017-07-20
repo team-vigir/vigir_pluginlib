@@ -10,7 +10,8 @@ import actionlib
 from rqt_gui_py.plugin import Plugin
 from python_qt_binding import loadUi
 from python_qt_binding.QtCore import Qt, Signal, Slot, QSignalMapper, QObject, QAbstractItemModel
-from python_qt_binding.QtGui import QAbstractItemView, QWidget, QMenu, QAction, QIcon, QHBoxLayout, QVBoxLayout, QComboBox
+from python_qt_binding.QtGui import QIcon
+from python_qt_binding.QtWidgets import QAbstractItemView, QWidget, QMenu, QAction, QHBoxLayout, QVBoxLayout, QComboBox
 
 from vigir_pluginlib_manager.plugin_tree_model import *
 from vigir_pluginlib_msgs.msg import PluginStates, GetPluginDescriptionsAction, GetPluginDescriptionsGoal, GetPluginStatesAction, GetPluginStatesGoal, GetPluginStatesResult, PluginManagementAction, PluginManagementGoal, PluginManagementResult
