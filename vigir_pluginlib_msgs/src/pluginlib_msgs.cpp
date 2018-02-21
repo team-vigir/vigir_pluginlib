@@ -4,15 +4,17 @@ namespace vigir_pluginlib
 {
 bool isDescriptionMatching(const msgs::PluginDescription& plugin_description, const msgs::PluginDescription& filter)
 {
-  if (!filter.name.data.empty() && filter.name.data != plugin_description.name.data)
+  if (!filter.name.empty() && filter.name != plugin_description.name)
     return false;
-  if (!filter.type_class_package.data.empty() && filter.type_class_package.data != plugin_description.type_class_package.data)
+  if (!filter.type_class_name.empty() && filter.type_class_name != plugin_description.type_class_name)
     return false;
-  if (!filter.type_class.data.empty() && filter.type_class.data != plugin_description.type_class.data)
+  if (!filter.type_class_package.empty() && filter.type_class_package != plugin_description.type_class_package)
     return false;
-  if (!filter.base_class_package.data.empty() && filter.base_class_package.data != plugin_description.base_class_package.data)
+  if (!filter.type_class.empty() && filter.type_class != plugin_description.type_class)
     return false;
-  if (!filter.base_class.data.empty() && filter.base_class.data != plugin_description.base_class.data)
+  if (!filter.base_class_package.empty() && filter.base_class_package != plugin_description.base_class_package)
+    return false;
+  if (!filter.base_class.empty() && filter.base_class != plugin_description.base_class)
     return false;
 
   return true;

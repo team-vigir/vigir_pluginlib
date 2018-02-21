@@ -1,5 +1,5 @@
 //=================================================================================================
-// Copyright (c) 2017, Alexander Stumpf, TU Darmstadt
+// Copyright (c) 2018, Alexander Stumpf, TU Darmstadt
 // All rights reserved.
 
 // Redistribution and use in source and binary forms, with or without
@@ -48,7 +48,7 @@ public:
   typedef boost::weak_ptr<Plugin> WeakPtr;
   typedef boost::weak_ptr<const Plugin> ConstWeakPtr;
 
-  Plugin(const std::string& name, const std::string& type_class_package = std::string(), const std::string& base_class_package = std::string(), const std::string& base_class = std::string());
+  Plugin(const std::string& name = std::string(), const std::string& type_class_package = std::string(), const std::string& base_class_package = std::string(), const std::string& base_class = std::string());
   virtual ~Plugin();
 
 private:

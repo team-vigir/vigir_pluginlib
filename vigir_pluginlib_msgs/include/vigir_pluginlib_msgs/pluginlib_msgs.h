@@ -1,5 +1,5 @@
 //=================================================================================================
-// Copyright (c) 2017, Alexander Stumpf, TU Darmstadt
+// Copyright (c) 2018, Alexander Stumpf, TU Darmstadt
 // All rights reserved.
 
 // Redistribution and use in source and binary forms, with or without
@@ -86,16 +86,18 @@ template<> struct less<vigir_pluginlib_msgs::PluginDescription>
 {
   bool operator() (const vigir_pluginlib_msgs::PluginDescription& lhs, const vigir_pluginlib_msgs::PluginDescription& rhs) const
   {
-    if (lhs.name.data != rhs.name.data)
-      return lhs.name.data < rhs.name.data;
-    else if (lhs.type_class.data != rhs.type_class.data)
-      return lhs.type_class.data < rhs.type_class.data;
-    else if (lhs.type_class_package.data != rhs.type_class_package.data)
-      return lhs.type_class_package.data < rhs.type_class_package.data;
-    else if (lhs.base_class.data != rhs.base_class.data)
-      return lhs.base_class.data < rhs.base_class.data;
-    else if (lhs.base_class_package.data != rhs.base_class_package.data)
-      return lhs.base_class_package.data < rhs.base_class_package.data;
+    if (lhs.name != rhs.name)
+      return lhs.name < rhs.name;
+    else if (lhs.type_class_name != rhs.type_class_name)
+      return lhs.type_class_name < rhs.type_class_name;
+    else if (lhs.type_class != rhs.type_class)
+      return lhs.type_class < rhs.type_class;
+    else if (lhs.type_class_package != rhs.type_class_package)
+      return lhs.type_class_package < rhs.type_class_package;
+    else if (lhs.base_class != rhs.base_class)
+      return lhs.base_class < rhs.base_class;
+    else if (lhs.base_class_package != rhs.base_class_package)
+      return lhs.base_class_package < rhs.base_class_package;
     else
       return false;
   }

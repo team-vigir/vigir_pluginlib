@@ -72,10 +72,10 @@ class PluginTreeModel(QtCore.QAbstractItemModel):
             return branch
 
         state = PluginState()
-        state.description.base_class.data = base_class
+        state.description.base_class = base_class
 
         # add new branch
-        temp_list = [child.getPluginState().description.base_class.data for child in self._root_item.childs()]
+        temp_list = [child.getPluginState().description.base_class for child in self._root_item.childs()]
         position = bisect.bisect(temp_list, base_class)
 
         if self.insertRows(position, 1):
@@ -87,7 +87,7 @@ class PluginTreeModel(QtCore.QAbstractItemModel):
 
     def addItem(self, state):
         # search for branch with type_class
-        branch = self.addBranch(state.description.base_class.data)
+        branch = self.addBranch(state.description.base_class)
         branch_item = self.getItem(branch)
 
         # check if child already does exist
@@ -96,8 +96,8 @@ class PluginTreeModel(QtCore.QAbstractItemModel):
             return child
 
         # add new item to branch
-        entry = (state.description.type_class.data, state.description.name.data)
-        temp_list = [(child.getPluginState().description.type_class.data, child.getPluginState().description.name.data) for child in branch_item.childs()]
+        entry = (state.description.type_class, state.description.name)
+        temp_list = [(child.getPluginState().description.type_class, child.getPluginState().description.name) for child in branch_item.childs()]
         position = bisect.bisect(temp_list, entry)
 
         if self.insertRows(position, 1, branch):
@@ -120,10 +120,10 @@ class PluginTreeModel(QtCore.QAbstractItemModel):
     def updateData(self, data):
         # update empty entries to keep UI tidy
         for state in data:
-            if not state.description.base_class.data:
-                state.description.base_class.data = 'Unknown'
-            if not state.description.type_class.data:
-                state.description.type_class.data = 'Unknown'
+            if not state.description.base_class:
+                state.description.base_class = 'Unknown'
+            if not state.description.type_class:
+                state.description.type_class = 'Unknown'
 
         # collect entries which does not exist in recent update anymore
         rows = []
@@ -188,7 +188,7 @@ class PluginTreeModel(QtCore.QAbstractItemModel):
     def findChild(self, description, parent=QtCore.QModelIndex()):
         parent_item = self.getItem(parent)
         if parent_item == self._root_item:
-            parent = self.findBranch(description.base_class.data, parent)
+            parent = self.findBranch(description.base_class, parent)
 
         if not parent.isValid():
             return QtCore.QModelIndex()
@@ -278,14 +278,14 @@ class PluginTreeItem:
     def data(self, column):
         if column == 0:
             if self.childCount() > 0:
-                return self._plugin_state.description.base_class.data
+                return self._plugin_state.description.base_class
             else:
-                return self._plugin_state.description.type_class.data
+                return self._plugin_state.description.type_class
         elif column == 1:
             if self.childCount() > 0:
                 return ""
             else:
-                return self._plugin_state.description.name.data
+                return self._plugin_state.description.name
         else:
             return None
 
@@ -303,7 +303,7 @@ class PluginTreeItem:
             return child_item[0]
 
     def findBranch(self, base_class):
-        branch_item = filter(lambda child: child.getPluginState().description.base_class.data == base_class, self._child_items)
+        branch_item = filter(lambda child: child.getPluginState().description.base_class == base_class, self._child_items)
         if not branch_item:
             return None
         else:

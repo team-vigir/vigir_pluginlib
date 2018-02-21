@@ -1,5 +1,5 @@
-std_msgs/String name
+string name
 vigir_pluginlib_msgs/PluginDescription[] descriptions
 ---
-std_msgs/Bool success
+bool success
 ---

@@ -1,5 +1,5 @@
 //=================================================================================================
-// Copyright (c) 2017, Alexander Stumpf, TU Darmstadt
+// Copyright (c) 2018, Alexander Stumpf, TU Darmstadt
 // All rights reserved.
 
 // Redistribution and use in source and binary forms, with or without
@@ -114,12 +114,15 @@ public:
       boost::upgrade_to_unique_lock<boost::shared_mutex> uniqueLock(lock);
       PluginLoader<PluginBaseClass>* loader = new PluginLoader<PluginBaseClass>(package, base_class, attrib_name, plugin_xml_paths);
       Instance()->class_loader_.push_back(loader);
+      getExportedPluginDescriptions(package, loader);
       ROS_INFO("[PluginManager] Added ClassLoader for plugins of type '%s'.", base_class.c_str());
+
       ROS_DEBUG("  Declared classes:");
-      for (const std::string s : loader->getDeclaredClasses())
-        ROS_DEBUG("    %s", s.c_str());
+      for (const std::string& s : loader->getDeclaredClasses())
+        ROS_DEBUG("    %s (%s)", s.c_str(), loader->getClassType(s).c_str());
+
       ROS_DEBUG("  Registered libraries:");
-      for (const std::string s : loader->getRegisteredLibraries())
+      for (const std::string& s : loader->getRegisteredLibraries())
         ROS_DEBUG("    %s", s.c_str());
     }
     catch (pluginlib::LibraryLoadException& e)
@@ -141,15 +144,15 @@ public:
    * @return false, if instantiation has failed, otherwise true
    */
   static bool addPlugins(const std::vector<msgs::PluginDescription>& plugin_descriptions, bool initialize = true, bool auto_completion = true);
-  static bool addPlugin(const msgs::PluginDescription& plugin_description, bool initialize = true, bool auto_completion = true);
-  static bool addPluginByName(const std::string& name, bool initialize = true);
+  static Plugin::Ptr addPlugin(const msgs::PluginDescription& plugin_description, bool initialize = true, bool auto_completion = true);
+  static Plugin::Ptr addPluginByName(const std::string& name, bool initialize = true);
 
   template<typename PluginDerivedClass>
-  static void addPlugin(bool initialize = true)
+  static Plugin::Ptr addPlugin(bool initialize = true)
   {
-    addPlugin(new PluginDerivedClass());
+   return addPlugin(new PluginDerivedClass());
   }
-  static void addPlugin(Plugin* plugin, bool initialize = true); // this function takes over pointer and will free memory automatically, when plugin is removed
+  static Plugin::Ptr addPlugin(Plugin* plugin, bool initialize = true); // this function takes over pointer and will free memory automatically, when plugin is removed
   static void addPlugin(Plugin::Ptr plugin, bool initialize = true);
 
   /**
@@ -310,7 +313,21 @@ public:
 
 protected:
   // helper
-  bool getPluginDescription(const std::string& key, msgs::PluginDescription& description);
+  template<class PluginBaseClass>
+  static void getExportedPluginDescriptions(const std::string& package, PluginLoader<PluginBaseClass>* loader)
+  {
+    for (const std::string& lookup_name : loader->getDeclaredClasses())
+    {
+      msgs::PluginDescription description;
+      description.type_class_name = lookup_name;
+      description.type_class = loader->getClassType(lookup_name);
+      description.type_class_package = loader->getClassPackage(lookup_name);
+      description.base_class = loader->getBaseClassType();
+      description.base_class_package = package;
+      Instance()->exported_plugins_[description.type_class_name] = description;
+    }
+  }
+
   void publishPluginStateUpdate();
 
   // mutex to ensure thread safeness
@@ -321,6 +338,9 @@ protected:
 
   // class loader
   PluginLoaderVector class_loader_;
+
+  // exported plugin database
+  std::map<std::string, msgs::PluginDescription> exported_plugins_;
 
   // instantiated plugins
   std::string loaded_plugin_set_;

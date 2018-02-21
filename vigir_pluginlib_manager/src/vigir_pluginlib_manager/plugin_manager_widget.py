@@ -10,8 +10,7 @@ import actionlib
 from rqt_gui_py.plugin import Plugin
 from python_qt_binding import loadUi
 from python_qt_binding.QtCore import Qt, Signal, Slot, QSignalMapper, QObject, QAbstractItemModel
-from python_qt_binding.QtGui import QIcon
-from python_qt_binding.QtWidgets import QAbstractItemView, QWidget, QMenu, QAction, QHBoxLayout, QVBoxLayout, QComboBox
+from python_qt_binding.QtWidgets import QAbstractItemView, QWidget, QMenu, QAction, QComboBox
 
 from vigir_pluginlib_manager.plugin_tree_model import *
 from vigir_pluginlib_msgs.msg import PluginStates, GetPluginDescriptionsAction, GetPluginDescriptionsGoal, GetPluginStatesAction, GetPluginStatesGoal, GetPluginStatesResult, PluginManagementAction, PluginManagementGoal, PluginManagementResult
@@ -22,25 +21,27 @@ class PluginManagerDialog(Plugin):
 
     def __init__(self, context):
         super(PluginManagerDialog, self).__init__(context)
-        self.setObjectName('PluginManagerDialog')
+        self_context = context
 
-        self._parent = QWidget()
-        self._widget = PluginManagerWidget(self._parent)
+        self._widget = PluginManagerWidget(self, context)
 
-        context.add_widget(self._parent)
+        if self_context.serial_number() > 1:
+            self._widget.setWindowTitle(self._widget.windowTitle() + (' (%d)' % self_context.serial_number()))
+
+        self_context.add_widget(self._widget)
 
     def shutdown_plugin(self):
         self._widget.shutdown_plugin()
 
 
 # Plugin Manager Widget
-class PluginManagerWidget(QObject):
+class PluginManagerWidget(QWidget):
 
     _NUM_DESC_ATTRIBUTES = 5
 
     plugin_states_updated_signal = Signal(list)
 
-    def __init__(self, context):
+    def __init__(self, parent, context):
         super(PluginManagerWidget, self).__init__()
 
         self.namespace = '/'
@@ -52,25 +53,15 @@ class PluginManagerWidget(QObject):
         self.remove_plugin_client = None
         self.plugin_descriptions = []
         self.add_plugin_selection_filter = PluginDescription()
-
-        # start widget
-        widget = context
-        vbox = QVBoxLayout()
-
+        
         # load from ui
-        self.plugin_manager_widget = QWidget()
         rp = rospkg.RosPack()
         ui_file = os.path.join(rp.get_path('vigir_pluginlib_manager'), 'resource', 'plugin_manager.ui')
-        loadUi(ui_file, self.plugin_manager_widget, {'QWidget': QWidget})
-        vbox.addWidget(self.plugin_manager_widget)
-
-        # init ui
-        icon = QIcon.fromTheme("view-refresh")
-        self.plugin_manager_widget.refreshAllPushButton.setIcon(icon)
-        self.plugin_manager_widget.refreshPluginStatesPushButton.setIcon(icon)
+        loadUi(ui_file, self, {'QWidget': QWidget})
+        self.setObjectName('PluginManagerUi')
 
         # init tree view
-        tree_view = self.plugin_manager_widget.plugin_tree_view
+        tree_view = self.plugin_tree_view
         tree_view.setSelectionMode(QAbstractItemView.ExtendedSelection)
 
         tree_view.setContextMenuPolicy(Qt.CustomContextMenu)
@@ -80,15 +71,15 @@ class PluginManagerWidget(QObject):
         tree_view.setModel(self.plugin_tree_model)
 
         # set up combo boxes
-        self.plugin_manager_widget.pluginNameComboBox.setInsertPolicy(QComboBox.NoInsert)
+        self.pluginNameComboBox.setInsertPolicy(QComboBox.NoInsert)
 
         # references to combo boxes
         self.plugin_cb = []
-        self.plugin_cb.append(self.plugin_manager_widget.pluginNameComboBox)
-        self.plugin_cb.append(self.plugin_manager_widget.pluginTypeClassComboBox)
-        self.plugin_cb.append(self.plugin_manager_widget.pluginTypePackageComboBox)
-        self.plugin_cb.append(self.plugin_manager_widget.pluginBaseClassComboBox)
-        self.plugin_cb.append(self.plugin_manager_widget.pluginBasePackageComboBox)
+        self.plugin_cb.append(self.pluginNameComboBox)
+        self.plugin_cb.append(self.pluginTypeClassComboBox)
+        self.plugin_cb.append(self.pluginTypePackageComboBox)
+        self.plugin_cb.append(self.pluginBaseClassComboBox)
+        self.plugin_cb.append(self.pluginBasePackageComboBox)
 
         # init signal mapper
         self.plugin_cb_mapper = QSignalMapper(self)
@@ -98,25 +89,21 @@ class PluginManagerWidget(QObject):
         for i in range(len(self.plugin_cb)):
             self.plugin_cb_mapper.setMapping(self.plugin_cb[i], i)
             self.plugin_cb[i].currentIndexChanged.connect(self.plugin_cb_mapper.map)
-        self.plugin_manager_widget.namespaceComboBox.currentIndexChanged[str].connect(self.set_namespace)
-        self.plugin_manager_widget.refreshAllPushButton.clicked[bool].connect(self.search_namespace)
-        self.plugin_manager_widget.refreshAllPushButton.clicked[bool].connect(self.refresh_plugin_descriptions)
-        self.plugin_manager_widget.refreshAllPushButton.clicked[bool].connect(self.refresh_plugin_states)
-        self.plugin_manager_widget.loadPluginSetPushButton.clicked[bool].connect(self.load_plugin_set)
-        self.plugin_manager_widget.refreshPluginStatesPushButton.clicked[bool].connect(self.refresh_plugin_sets)
-        self.plugin_manager_widget.refreshPluginStatesPushButton.clicked[bool].connect(self.refresh_plugin_descriptions)
-        self.plugin_manager_widget.refreshPluginStatesPushButton.clicked[bool].connect(self.refresh_plugin_states)
-        self.plugin_manager_widget.addPluginPushButton.clicked[bool].connect(self.add_plugin)
-        self.plugin_manager_widget.clearAddPluginSelectionPushButton.clicked[bool].connect(self.clear_add_plugin_selection)
-        self.plugin_manager_widget.removePluginsPushButton.clicked[bool].connect(self.remove_plugins)
+        self.namespaceComboBox.currentIndexChanged[str].connect(self.set_namespace)
+        self.refreshAllPushButton.clicked[bool].connect(self.search_namespace)
+        self.refreshAllPushButton.clicked[bool].connect(self.refresh_plugin_descriptions)
+        self.refreshAllPushButton.clicked[bool].connect(self.refresh_plugin_states)
+        self.loadPluginSetPushButton.clicked[bool].connect(self.load_plugin_set)
+        self.refreshPluginStatesPushButton.clicked[bool].connect(self.refresh_plugin_sets)
+        self.refreshPluginStatesPushButton.clicked[bool].connect(self.refresh_plugin_descriptions)
+        self.refreshPluginStatesPushButton.clicked[bool].connect(self.refresh_plugin_states)
+        self.addPluginPushButton.clicked[bool].connect(self.add_plugin)
+        self.clearAddPluginSelectionPushButton.clicked[bool].connect(self.clear_add_plugin_selection)
+        self.removePluginsPushButton.clicked[bool].connect(self.remove_plugins)
 
         # Qt signals
         self.plugin_states_updated_signal.connect(self.update_plugin_tree_view)
         #self.connect(self, QtCore.SIGNAL('setTransitionModeStatusStyle(PyQt_PyObject)'), self._set_transition_mode_status_style)
-
-        # end widget
-        widget.setLayout(vbox)
-        #context.add_widget(widget)
 
         # init plugin tree view
         self.search_namespace()
@@ -127,7 +114,7 @@ class PluginManagerWidget(QObject):
         print 'Done!'
 
     def _open_context_menu(self, position):
-        indexes = self.plugin_manager_widget.plugin_tree_view.selectedIndexes()
+        indexes = self.plugin_tree_view.selectedIndexes()
         level = -1
         if len(indexes) > 0:
             level = 0
@@ -139,14 +126,14 @@ class PluginManagerWidget(QObject):
         menu = QMenu()
         if level == 0:
             expand_action = QAction(self.tr('Expand'), None)
-            expand_action.triggered.connect(self.plugin_manager_widget.plugin_tree_view.expandAll)
+            expand_action.triggered.connect(self.plugin_tree_view.expandAll)
             menu.addAction(expand_action)
         if level == 0 or level == 1:
             remove_action = QAction(self.tr('Remove'), None)
             remove_action.triggered.connect(self.remove_plugins)
             menu.addAction(remove_action)
 
-        menu.exec_(self.plugin_manager_widget.plugin_tree_view.viewport().mapToGlobal(position))
+        menu.exec_(self.plugin_tree_view.viewport().mapToGlobal(position))
 
     def init_topics(self, namespace):
         # init subscribers
@@ -163,28 +150,28 @@ class PluginManagerWidget(QObject):
 
     def _set_data_in_description(self, description, index, data):
         if index == 0:
-            description.name.data = data
+            description.name = data
         if index == 1:
-            description.type_class.data = data
+            description.type_class = data
         if index == 2:
-            description.type_class_package.data = data
+            description.type_class_package = data
         if index == 3:
-            description.base_class.data = data
+            description.base_class = data
         if index == 4:
-            description.base_class_package.data = data
+            description.base_class_package = data
         return description
 
     def _get_data_from_description(self, description, index):
         if index == 0:
-            return description.name.data
+            return description.name
         if index == 1:
-            return description.type_class.data
+            return description.type_class
         if index == 2:
-            return description.type_class_package.data
+            return description.type_class_package
         if index == 3:
-            return description.base_class.data
+            return description.base_class
         if index == 4:
-            return description.base_class_package.data
+            return description.base_class_package
 
     def filter_descriptions(self, filtered_list, description_filter):
         result = filtered_list
@@ -196,7 +183,7 @@ class PluginManagerWidget(QObject):
 
     @Slot()
     def search_namespace(self):
-        cb = self.plugin_manager_widget.namespaceComboBox
+        cb = self.namespaceComboBox
         cb.blockSignals(True)
         cb.setEnabled(False)
         cb.clear()
@@ -238,23 +225,23 @@ class PluginManagerWidget(QObject):
         if rospy.has_param(self.namespace+'/plugin_sets'):
             plugin_sets = rospy.get_param(self.namespace+'/plugin_sets').keys()
 
-        cb = self.plugin_manager_widget.loadPluginSetComboBox
+        cb = self.loadPluginSetComboBox
         cb.clear()
 
         if plugin_sets:
             cb.addItems(plugin_sets)
             cb.setEnabled(True)
-            self.plugin_manager_widget.loadPluginSetPushButton.setEnabled(True)
+            self.loadPluginSetPushButton.setEnabled(True)
         else:
             cb.setEnabled(False)
-            self.plugin_manager_widget.loadPluginSetPushButton.setEnabled(False)
+            self.loadPluginSetPushButton.setEnabled(False)
 
     @Slot()
     def load_plugin_set(self):
         if self.load_plugin_set_client.wait_for_server(rospy.Duration(1.0)):
             # send request to server
             goal = PluginManagementGoal()
-            goal.name.data = self.plugin_manager_widget.loadPluginSetComboBox.currentText()
+            goal.name = self.loadPluginSetComboBox.currentText()
             self.load_plugin_set_client.send_goal(goal)
 
     @Slot(int)
@@ -292,7 +279,7 @@ class PluginManagerWidget(QObject):
         for cb in self.plugin_cb:
             cb.blockSignals(False)
 
-        self.plugin_manager_widget.addPluginPushButton.setEnabled(True)
+        self.addPluginPushButton.setEnabled(True)
 
     @Slot()
     def clear_add_plugin_selection(self):
@@ -314,7 +301,7 @@ class PluginManagerWidget(QObject):
         for cb in self.plugin_cb:
             cb.blockSignals(False)
 
-        self.plugin_manager_widget.addPluginPushButton.setEnabled(False)
+        self.addPluginPushButton.setEnabled(False)
 
     @Slot()
     def refresh_plugin_descriptions(self):
@@ -325,7 +312,7 @@ class PluginManagerWidget(QObject):
             cb.blockSignals(True)
             cb.clear()
 
-        self.plugin_manager_widget.addPluginPushButton.setEnabled(False)
+        self.addPluginPushButton.setEnabled(False)
 
         # collect all plugin descriptions from manager
         if self.get_plugin_descriptions_client.wait_for_server(rospy.Duration(1.0)):
@@ -346,14 +333,14 @@ class PluginManagerWidget(QObject):
             # get plugin description from param server
             if len(psplit) >= 2 and psplit[1] == 'type_class':
                 description = PluginDescription()
-                description.name.data = psplit[0]
-                description.type_class.data = rospy.get_param(pname)
+                description.name = psplit[0]
+                description.type_class = rospy.get_param(pname)
                 if rospy.has_param(self.namespace+psplit[0]+'/type_class_package'):
-                    description.type_class_package.data = rospy.get_param(self.namespace+psplit[0]+'/type_class_package')
+                    description.type_class_package = rospy.get_param(self.namespace+psplit[0]+'/type_class_package')
                 if rospy.has_param(self.namespace+psplit[0]+'/base_class'):
-                    description.base_class.data = rospy.get_param(self.namespace+psplit[0]+'/base_class')
+                    description.base_class = rospy.get_param(self.namespace+psplit[0]+'/base_class')
                 if rospy.has_param(self.namespace+psplit[0]+'/base_class_package'):
-                    description.base_class_package.data = rospy.get_param(self.namespace+psplit[0]+'/base_class_package')
+                    description.base_class_package = rospy.get_param(self.namespace+psplit[0]+'/base_class_package')
                 self.plugin_descriptions.append(description)
 
         # prepare combo box item texts
@@ -384,10 +371,10 @@ class PluginManagerWidget(QObject):
     @Slot(list)
     def update_plugin_tree_view(self, states):
         self.plugin_tree_model.updateData(states)
-        #self.plugin_manager_widget.plugin_tree_view.setModel(self.plugin_tree_model)
+        #self.plugin_tree_view.setModel(self.plugin_tree_model)
         #for column in range(0, self.plugin_tree_model.columnCount()):
         #    self.plugin_tree_model.resizeColumnToContents(column)
-        #self.plugin_manager_widget.plugin_tree_view.expandAll()
+        #self.plugin_tree_view.expandAll()
 
     @Slot()
     def add_plugin(self):
@@ -404,7 +391,7 @@ class PluginManagerWidget(QObject):
 
     @Slot()
     def remove_plugins(self):
-        indexes = self.plugin_manager_widget.plugin_tree_view.selectionModel().selectedIndexes()
+        indexes = self.plugin_tree_view.selectionModel().selectedIndexes()
         indexes = filter(lambda index: index.column() == 0, indexes)
 
         # extract plugin descriptions from selection

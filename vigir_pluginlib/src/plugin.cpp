@@ -8,11 +8,10 @@ namespace vigir_pluginlib
 {
 Plugin::Plugin(const std::string& name, const std::string& type_class_package, const std::string& base_class_package, const std::string& base_class)
 {
-  msgs::PluginDescription description;
-  description.name.data = name;
-  description.type_class_package.data = type_class_package;
-  description.base_class_package.data = base_class_package;
-  description.base_class.data = base_class;
+  description_.name = name;
+  description_.type_class_package = type_class_package;
+  description_.base_class_package = base_class_package;
+  description_.base_class = base_class;
 }
 
 Plugin::~Plugin()
@@ -29,9 +28,9 @@ bool Plugin::setup(ros::NodeHandle& nh, const vigir_generic_params::ParameterSet
 
 const msgs::PluginDescription& Plugin::getDescription() const
 {
-  if (description_.type_class.data.empty())
+  if (description_.type_class.empty())
   {
-    (const_cast<Plugin*>(this))->description_.type_class.data = TypeClass::get(this);
+    (const_cast<Plugin*>(this))->description_.type_class = TypeClass::get(this);
     (const_cast<Plugin*>(this))->updateDescription(description_);
   }
   return description_;
@@ -39,32 +38,32 @@ const msgs::PluginDescription& Plugin::getDescription() const
 
 const std::string& Plugin::getName() const
 {
-  return description_.name.data;
+  return description_.name;
 }
 
 const std::string& Plugin::getTypeClassPackage() const
 {
-  return description_.type_class_package.data;
+  return description_.type_class_package;
 }
 
 const std::string& Plugin::getTypeClass() const
 {
-  if (description_.type_class.data.empty())
+  if (description_.type_class.empty())
   {
-    (const_cast<Plugin*>(this))->description_.type_class.data = TypeClass::get(this);
+    (const_cast<Plugin*>(this))->description_.type_class = TypeClass::get(this);
     (const_cast<Plugin*>(this))->updateDescription(description_);
   }
-  return description_.type_class.data;
+  return description_.type_class;
 }
 
 const std::string& Plugin::getBaseClassPackage() const
 {
-  return description_.base_class_package.data;
+  return description_.base_class_package;
 }
 
 const std::string& Plugin::getBaseClass() const
 {
-  return description_.base_class.data;
+  return description_.base_class;
 }
 
 void Plugin::updateDescription(const msgs::PluginDescription& description)
