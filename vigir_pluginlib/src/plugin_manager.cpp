@@ -113,7 +113,9 @@ bool PluginManager::autocompletePluginDescriptionByName(msgs::PluginDescription&
     // check trivial case: name equals to lookup name
     if (Instance()->exported_plugins_.find(name) != Instance()->exported_plugins_.end())
     {
+      std::string plugin_name = plugin_description.name;
       plugin_description = Instance()->exported_plugins_[name];
+      plugin_description.name = plugin_name;
       return true;
     }
 
@@ -123,7 +125,9 @@ bool PluginManager::autocompletePluginDescriptionByName(msgs::PluginDescription&
     {
       if (Instance()->exported_plugins_.find(type_class_name) != Instance()->exported_plugins_.end())
       {
+        std::string plugin_name = plugin_description.name;
         plugin_description = Instance()->exported_plugins_[type_class_name];
+        plugin_description.name = plugin_name;
         return true;
       }
     }
@@ -255,6 +259,7 @@ Plugin::Ptr PluginManager::addPlugin(const msgs::PluginDescription& plugin_descr
   catch (pluginlib::PluginlibException& e)
   {
     ROS_ERROR("[PluginManager] Plugin (%s) of type_class '%s' failed to load for some reason. Error message: \n %s", description.name.c_str(), description.type_class.c_str(), e.what());
+    ROS_ERROR_STREAM("Description:\n" << description);
     return Plugin::Ptr();
   }
 

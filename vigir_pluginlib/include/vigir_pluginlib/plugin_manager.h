@@ -31,17 +31,17 @@
 
 #include <ros/ros.h>
 
-#include <actionlib/server/simple_action_server.h>
-
 #include <boost/noncopyable.hpp>
 
+#include <actionlib/server/simple_action_server.h>
+
 #include <vigir_generic_params/parameter_manager.h>
+
+#include <vigir_pluginlib_msgs/pluginlib_msgs.h>
 
 #include <vigir_pluginlib/plugin_loader.h>
 #include <vigir_pluginlib/plugin.h>
 #include <vigir_pluginlib/type_class_traits.h>
-
-#include <vigir_pluginlib_msgs/pluginlib_msgs.h>
 
 
 
