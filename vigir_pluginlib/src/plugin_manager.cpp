@@ -113,9 +113,12 @@ bool PluginManager::autocompletePluginDescriptionByName(msgs::PluginDescription&
     // check trivial case: name equals to lookup name
     if (Instance()->exported_plugins_.find(name) != Instance()->exported_plugins_.end())
     {
-      std::string plugin_name = plugin_description.name;
-      plugin_description = Instance()->exported_plugins_[name];
-      plugin_description.name = plugin_name;
+      const msgs::PluginDescription& exported_description = Instance()->exported_plugins_[name];
+      plugin_description.type_class = exported_description.type_class;
+      plugin_description.type_class_name = exported_description.type_class_name;
+      plugin_description.type_class_package = exported_description.type_class_package;
+      plugin_description.base_class = exported_description.base_class;
+      plugin_description.base_class_package = exported_description.base_class_package;
       return true;
     }
 
@@ -125,9 +128,12 @@ bool PluginManager::autocompletePluginDescriptionByName(msgs::PluginDescription&
     {
       if (Instance()->exported_plugins_.find(type_class_name) != Instance()->exported_plugins_.end())
       {
-        std::string plugin_name = plugin_description.name;
-        plugin_description = Instance()->exported_plugins_[type_class_name];
-        plugin_description.name = plugin_name;
+        const msgs::PluginDescription& exported_description = Instance()->exported_plugins_[type_class_name];
+        plugin_description.type_class = exported_description.type_class;
+        plugin_description.type_class_name = exported_description.type_class_name;
+        plugin_description.type_class_package = exported_description.type_class_package;
+        plugin_description.base_class = exported_description.base_class;
+        plugin_description.base_class_package = exported_description.base_class_package;
         return true;
       }
     }
