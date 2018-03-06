@@ -208,13 +208,13 @@ public:
 
   /// returns all plugins derived by class T in alphabetical order (name)
   template<typename T>
-  static bool getPlugins(std::vector<boost::shared_ptr<T> >& plugins)
+  static bool getPlugins(std::vector<boost::shared_ptr<T>>& plugins)
   {
     return getPluginsByType<T>(plugins);
   }
 
   template<typename T>
-  static bool getPluginsByType(std::vector<boost::shared_ptr<T> >& plugins)
+  static bool getPluginsByType(std::vector<boost::shared_ptr<T>>& plugins)
   {
     plugins.clear();
 
@@ -231,7 +231,7 @@ public:
   }
   /// returns all plugins derived by class T as map
   template<typename T>
-  static bool getPluginsByType(std::map<std::string, boost::shared_ptr<T> >& plugins)
+  static bool getPluginsByType(std::map<std::string, boost::shared_ptr<T>>& plugins)
   {
     plugins.clear();
 

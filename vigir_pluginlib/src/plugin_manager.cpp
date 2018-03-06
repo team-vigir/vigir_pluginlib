@@ -37,6 +37,13 @@ void PluginManager::initialize(ros::NodeHandle& nh)
 {
   Instance()->nh_ = nh;
 
+  // clear old services
+  Instance()->get_plugin_descriptions_srv_ = ros::ServiceServer();
+  Instance()->get_plugin_states_srv_ = ros::ServiceServer();
+  Instance()->add_plugin_srv_ = ros::ServiceServer();
+  Instance()->remove_plugin_srv_ = ros::ServiceServer();
+  Instance()->load_plugin_set_srv_ = ros::ServiceServer();
+
   // subscribe topics
   Instance()->add_plugin_sub_ = Instance()->nh_.subscribe("plugin_manager/add_plugin", 1, &PluginManager::addPlugin, Instance().get());
   Instance()->load_plugin_set_sub_ = Instance()->nh_.subscribe("plugin_manager/load_plugin_set", 1, &PluginManager::loadPluginSet, Instance().get());

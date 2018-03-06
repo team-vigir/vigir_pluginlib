@@ -29,6 +29,8 @@
 #ifndef VIGIR_PLUGINLIB_PLUGIN_AGGREGATOR_H__
 #define VIGIR_PLUGINLIB_PLUGIN_AGGREGATOR_H__
 
+#include <functional>
+
 #include <ros/ros.h>
 
 #include <vigir_generic_params/parameter_manager.h>
@@ -85,7 +87,7 @@ public:
    * @brief Returns a list of all known plugins of type T.
    * @return List of all known plugins of type T
    */
-  virtual std::vector<boost::shared_ptr<PluginClass>> getPlugins() const
+  std::vector<boost::shared_ptr<PluginClass>> getPlugins() const
   {
     return plugins_;
   }
@@ -94,7 +96,7 @@ public:
    * @brief Returns the number of known plugins of type T.
    * @return Number of known plugins of type T
    */
-  virtual size_t size() const
+  size_t size() const
   {
     return plugins_.size();
   }
@@ -115,6 +117,15 @@ public:
     }
 
     return result;
+  }
+
+  void call(std::function<void()> fun)
+  {
+    for (const boost::shared_ptr<PluginClass> plugin : plugins_)
+    {
+      if (plugin)
+        fun(plugin.get());
+    }
   }
 
 protected:
