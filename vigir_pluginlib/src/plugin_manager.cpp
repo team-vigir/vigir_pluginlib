@@ -640,6 +640,18 @@ bool PluginManager::hasPluginsByTypeClass(const std::string& type_class)
     if (itr->second->getTypeClass() == type_class)
       return true;
   }
+  return false;
+}
+
+bool PluginManager::hasPluginsByBaseClass(const std::string& base_class)
+{
+  boost::shared_lock<boost::shared_mutex> lock(Instance()->plugins_mutex_);
+  for (std::map<std::string, Plugin::Ptr>::iterator itr = Instance()->plugins_by_name_.begin(); itr != Instance()->plugins_by_name_.end(); itr++)
+  {
+    if (itr->second->getBaseClass() == base_class)
+      return true;
+  }
+  return false;
 }
 
 void PluginManager::loadParams(const vigir_generic_params::ParameterSet& params)

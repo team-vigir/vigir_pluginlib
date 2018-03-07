@@ -309,6 +309,8 @@ public:
     return boost::dynamic_pointer_cast<T>(getPluginByName(name)) != nullptr;
   }
 
+  static bool hasPluginsByBaseClass(const std::string& base_class);
+
   static void loadParams(const vigir_generic_params::ParameterSet& params);
 
 protected:
