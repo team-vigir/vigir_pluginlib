@@ -97,8 +97,8 @@ bool PluginManager::autocompletePluginDescriptionByName(msgs::PluginDescription&
     bool imported = false;
     std::string import_name;
     if ((params.getParam("import", import_name, std::string(), true) && import_name != name)  ||  // explicit import defined by input parameter
-        (plugin_nh.getParam("", import_name) && import_name != "none")                        ||  // implicit import by config file: 'my_plugin: imported_plugin'
-         plugin_nh.getParam("import", import_name))                                               // explicit import by config file
+        (plugin_nh.getParam("", import_name) && import_name != "none" && import_name != name) ||  // implicit import by config file: 'my_plugin: imported_plugin'
+        (plugin_nh.getParam("import", import_name) && import_name != name))                       // explicit import by config file
     {
       // load description from transitive imports
       if (!ns.empty())
@@ -221,7 +221,7 @@ Plugin::Ptr PluginManager::addPlugin(const msgs::PluginDescription& plugin_descr
     }
     else if (auto_completion && !autocompletePluginDescriptionByName(description, description.name))
     {
-      ROS_ERROR("[PluginManager] addPlugin: Can't autocomplete plugin description for (%s)!", description.name.c_str());
+      ROS_ERROR("[PluginManager] addPlugin: Can't autocomplete plugin description for '%s'!", description.name.c_str());
       return Plugin::Ptr();
     }
   }
