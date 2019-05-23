@@ -193,6 +193,15 @@ private:
 
   msgs::PluginDescription description_;
 };
+
+/**
+ * Upcast method in order to change current type to another within the inheritance hierachy.
+ * @param T target class type
+ * @param in input shared pointer that should be casted
+ * @return shared pointer to upcast object, nullptr when invalid cast
+ */
+template<typename T1, typename T2>
+inline static boost::shared_ptr<T1> cast(boost::shared_ptr<T2> in) { return boost::dynamic_pointer_cast<T1>(in); }
 }
 
 #endif

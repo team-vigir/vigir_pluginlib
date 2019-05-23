@@ -164,7 +164,7 @@ public:
     // name specific search
     if (!name.empty())
     {
-      boost::shared_ptr<T> plugin = boost::dynamic_pointer_cast<T>(getPluginByName(name));
+      boost::shared_ptr<T> plugin = cast<T>(getPluginByName(name));
       if (plugin)
         return plugin;
 
@@ -177,7 +177,7 @@ public:
 
       for (std::map<std::string, Plugin::Ptr>::iterator itr = Instance()->plugins_by_name_.begin(); itr != Instance()->plugins_by_name_.end(); itr++)
       {
-        boost::shared_ptr<T> plugin = boost::dynamic_pointer_cast<T>(itr->second);
+        boost::shared_ptr<T> plugin = cast<T>(itr->second);
         if (plugin)
           return plugin;
       }
@@ -222,7 +222,7 @@ public:
 
     for (std::map<std::string, Plugin::Ptr>::iterator itr = Instance()->plugins_by_name_.begin(); itr != Instance()->plugins_by_name_.end(); itr++)
     {
-      boost::shared_ptr<T> plugin = boost::dynamic_pointer_cast<T>(itr->second);
+      boost::shared_ptr<T> plugin = cast<T>(itr->second);
       if (plugin)
         plugins.push_back(plugin);
     }
@@ -239,7 +239,7 @@ public:
 
     for (std::map<std::string, Plugin::Ptr>::iterator itr = Instance()->plugins_by_name_.begin(); itr != Instance()->plugins_by_name_.end(); itr++)
     {
-      boost::shared_ptr<T> plugin = boost::dynamic_pointer_cast<T>(itr->second);
+      boost::shared_ptr<T> plugin = cast<T>(itr->second);
       if (plugin)
         plugins[itr->first] = plugin;
     }
@@ -267,7 +267,7 @@ public:
 
     for (std::map<std::string, Plugin::Ptr>::iterator itr = Instance()->plugins_by_name_.begin(); itr != Instance()->plugins_by_name_.end();)
     {
-      boost::shared_ptr<T> plugin = boost::dynamic_pointer_cast<T>(itr->second);
+      boost::shared_ptr<T> plugin = cast<T>(itr->second);
       if (plugin)
       {
         lock.unlock();
@@ -294,7 +294,7 @@ public:
 
     for (std::map<std::string, Plugin::Ptr>::iterator itr = Instance()->plugins_by_name_.begin(); itr != Instance()->plugins_by_name_.end(); itr++)
     {
-      boost::shared_ptr<T> plugin = boost::dynamic_pointer_cast<T>(itr->second);
+      boost::shared_ptr<T> plugin = cast<T>(itr->second);
       if (plugin)
         return true;
     }
@@ -306,7 +306,7 @@ public:
   template<typename T>
   static bool hasPluginByNameAndType(const std::string& name)
   {
-    return boost::dynamic_pointer_cast<T>(getPluginByName(name)) != nullptr;
+    return cast<T>(getPluginByName(name)) != nullptr;
   }
 
   static bool hasPluginsByBaseClass(const std::string& base_class);
@@ -391,15 +391,6 @@ protected:
   boost::shared_ptr<PluginManagementActionServer> remove_plugin_as_;
   boost::shared_ptr<PluginManagementActionServer> load_plugin_set_as_;
 };
-
-/**
- * Upcast method in order to change current type to another within the inheritance hierachy.
- * @param T target class type
- * @param in input shared pointer that should be casted
- * @return shared pointer to upcast object, nullptr when invalid cast
- */
-template<typename T1, typename T2>
-inline static boost::shared_ptr<T1> cast(boost::shared_ptr<T2> in) { return boost::dynamic_pointer_cast<T1>(in); }
 }
 
 #endif
