@@ -78,6 +78,14 @@ public:
   static void initialize(ros::NodeHandle& nh);
 
   /**
+   * @brief Tries to parse the plugin description from an XmlRpcValue
+   * @param plugin_description [output] Output of parsed plugin description
+   * @param val XmlRpcValue containing the description
+   * @return True if parsing was successful
+   */
+  static bool parsePluginDescription(msgs::PluginDescription& plugin_description, const XmlRpc::XmlRpcValue& val);
+
+  /**
    * @brief Tries to extract plugin description from rosparam server using the given name
    * @param plugin_description [output] Output of extracted plugin description
    * @param name Name of the plugin
@@ -331,6 +339,8 @@ protected:
   }
 
   void publishPluginStateUpdate();
+
+  static bool parseString(std::string& out, XmlRpc::XmlRpcValue& val, const std::string& key);
 
   // mutex to ensure thread safeness
   mutable boost::shared_mutex plugins_mutex_;

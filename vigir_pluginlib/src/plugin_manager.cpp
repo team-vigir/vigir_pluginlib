@@ -74,6 +74,45 @@ void PluginManager::initialize(ros::NodeHandle& nh)
   Instance()->load_plugin_set_as_->start();
 }
 
+bool PluginManager::parsePluginDescription(msgs::PluginDescription& plugin_description, const XmlRpc::XmlRpcValue& val)
+{
+  XmlRpc::XmlRpcValue p = val;
+
+  plugin_description = msgs::PluginDescription();
+
+  if (p.getType() != XmlRpc::XmlRpcValue::TypeStruct)
+  {
+    ROS_ERROR_NAMED("PluginManager", "[PluginManager] parsePluginDescription: Input XmlRpcValue has wrong format.");
+    return false;
+  }
+
+  if (!parseString(plugin_description.name, p, "name"))
+    return false;
+
+  if (p.hasMember("type_class_name"))
+    parseString(plugin_description.type_class_name, p, "type_class_name");
+  if (p.hasMember("type_class_package"))
+    parseString(plugin_description.type_class_package, p, "type_class_package");
+  if (p.hasMember("type_class"))
+    parseString(plugin_description.type_class, p, "type_class");
+  if (p.hasMember("base_class_package"))
+    parseString(plugin_description.base_class_package, p, "base_class_package");
+  if (p.hasMember("base_class"))
+    parseString(plugin_description.base_class, p, "base_class");
+
+  if (p.hasMember("params"))
+  {
+    if (p["params"].getType() != XmlRpc::XmlRpcValue::TypeStruct)
+    {
+      ROS_ERROR_NAMED("PluginManager", "[PluginManager] parsePluginDescription: Input XmlRpcValue has invalid parameter format.");
+      return false;
+    }
+    ParameterSet(p["params"]).toMsg(plugin_description.params);
+  }
+
+  return true;
+}
+
 bool PluginManager::autocompletePluginDescriptionByName(msgs::PluginDescription& plugin_description, const std::string& name, const std::string& ns)
 {
   try
@@ -216,12 +255,12 @@ Plugin::Ptr PluginManager::addPlugin(const msgs::PluginDescription& plugin_descr
   {
     if (description.name.empty())
     {
-      ROS_ERROR("[PluginManager] addPlugin: Call without name (%s) or type class package (%s) and type class (%s)!", description.name.c_str(), description.type_class_package.c_str(), description.type_class.c_str());
+      ROS_ERROR_NAMED("PluginManager", "[PluginManager] addPlugin: Call without name (%s) or type class package (%s) and type class (%s)!", description.name.c_str(), description.type_class_package.c_str(), description.type_class.c_str());
       return Plugin::Ptr();
     }
     else if (auto_completion && !autocompletePluginDescriptionByName(description, description.name))
     {
-      ROS_ERROR("[PluginManager] addPlugin: Can't autocomplete plugin description for '%s'!", description.name.c_str());
+      ROS_ERROR_NAMED("PluginManager", "[PluginManager] addPlugin: Can't autocomplete plugin description for '%s'!", description.name.c_str());
       return Plugin::Ptr();
     }
   }
@@ -271,7 +310,7 @@ Plugin::Ptr PluginManager::addPlugin(const msgs::PluginDescription& plugin_descr
   }
   catch (pluginlib::PluginlibException& e)
   {
-    ROS_ERROR("[PluginManager] Plugin (%s) of type_class '%s' failed to load for some reason. Error message: \n %s", description.name.c_str(), description.type_class.c_str(), e.what());
+    ROS_ERROR_NAMED("PluginManager", "[PluginManager] Plugin (%s) of type_class '%s' failed to load for some reason. Error message: \n %s", description.name.c_str(), description.type_class.c_str(), e.what());
     ROS_ERROR_STREAM("Description:\n" << description);
     return Plugin::Ptr();
   }
@@ -298,7 +337,7 @@ void PluginManager::addPlugin(Plugin::Ptr plugin, bool initialize)
 {
   if (!plugin)
   {
-    ROS_ERROR("[PluginManager] addPlugin: Got NULL pointer as plugin. Fix it immediatly!");
+    ROS_ERROR_NAMED("PluginManager", "[PluginManager] addPlugin: Got NULL pointer as plugin. Fix it immediatly!");
     return;
   }
 
@@ -342,7 +381,7 @@ void PluginManager::addPlugin(Plugin::Ptr plugin, bool initialize)
         !(plugin->loadParams(ParameterManager::getActive()) &&
           plugin->initialize(ParameterManager::getActive()) &&
           plugin->postInitialize(ParameterManager::getActive())))
-      ROS_ERROR("[PluginManager] addPlugin: Initialization of Plugin '%s' with type_class '%s' failed!", plugin->getName().c_str(), plugin->getTypeClass().c_str());
+      ROS_ERROR_NAMED("PluginManager", "[PluginManager] addPlugin: Initialization of Plugin '%s' with type_class '%s' failed!", plugin->getName().c_str(), plugin->getTypeClass().c_str());
   }
   }
 
@@ -473,7 +512,7 @@ bool PluginManager::removePlugin(const msgs::PluginDescription& plugin_descripti
 //  else if(!plugin_description.type_class.empty())
 //    addPlugin(plugin_description.type_class, plugin_description.base_class);
   else
-    ROS_ERROR("[PluginManager] removePlugin: Call without name!");
+    ROS_ERROR_NAMED("PluginManager", "[PluginManager] removePlugin: Call without name!");
 
   return false;
 }
@@ -576,7 +615,7 @@ bool PluginManager::loadPluginSet(const std::string& name)
 
   if (!Instance()->nh_.hasParam(prefix))
   {
-    ROS_ERROR("[PluginManager] loadPluginSet: Couldn't find plugin set '%s' at parameter server.", name.c_str());
+    ROS_ERROR_NAMED("PluginManager", "[PluginManager] loadPluginSet: Couldn't find plugin set '%s' at parameter server.", name.c_str());
     return false;
   }
 
@@ -614,7 +653,7 @@ bool PluginManager::loadPluginSet(const std::string& name)
   }
   else
   {
-    ROS_ERROR("[PluginManager] loadPluginSet: Loaded plugin set '%s' failed!", name.c_str());
+    ROS_ERROR_NAMED("PluginManager", "[PluginManager] loadPluginSet: Loaded plugin set '%s' failed!", name.c_str());
     return false;
   }
 }
@@ -667,6 +706,25 @@ void PluginManager::publishPluginStateUpdate()
   msgs::PluginStates plugin_states;
   getPluginStates(plugin_states.states);
   plugin_states_pub_.publish(plugin_states);
+}
+
+bool PluginManager::parseString(std::string& out, XmlRpc::XmlRpcValue& val, const std::string& key)
+{
+  if (!val.hasMember(key))
+  {
+    ROS_ERROR_NAMED("PluginManager", "[PluginManager] parseString: Missing '%s' tag.", key.c_str());
+    return false;
+  }
+
+  if (val[key].getType() != XmlRpc::XmlRpcValue::TypeString)
+  {
+    ROS_ERROR_NAMED("PluginManager", "[PluginManager] parseString: Element '%s' is not a string (Current TypeID: %u)!", key.c_str(), val[key].getType());
+    return false;
+  }
+
+  out = static_cast<std::string>(val[key]);
+
+  return true;
 }
 
 // --- Subscriber calls ---
