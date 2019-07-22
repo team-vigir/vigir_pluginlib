@@ -37,11 +37,9 @@
 
 #include <vigir_pluginlib/plugin_manager.h>
 
-
-
 namespace vigir_pluginlib
 {
-template<class PluginClass>
+template <class PluginClass>
 class PluginAggregator
 {
 public:
@@ -52,15 +50,13 @@ public:
   typedef boost::weak_ptr<const PluginAggregator<PluginClass>> ConstWeakPtr;
 
   PluginAggregator(const std::string& name = std::string("PluginAggregator"))
-    : name_(name) {}
+    : name_(name)
+  {}
 
   /**
    * @brief Clears internal collection of all plugins
    */
-  virtual void clear()
-  {
-    plugins_.clear();
-  }
+  virtual void clear() { plugins_.clear(); }
 
   /**
    * @brief Collects all plugins from PluginManager matching the type T.
@@ -87,19 +83,13 @@ public:
    * @brief Returns a list of all known plugins of type T.
    * @return List of all known plugins of type T
    */
-  std::vector<boost::shared_ptr<PluginClass>> getPlugins() const
-  {
-    return plugins_;
-  }
+  std::vector<boost::shared_ptr<PluginClass>> getPlugins() const { return plugins_; }
 
   /**
    * @brief Returns the number of known plugins of type T.
    * @return Number of known plugins of type T
    */
-  size_t size() const
-  {
-    return plugins_.size();
-  }
+  size_t size() const { return plugins_.size(); }
 
   /**
    * @brief Loads parameters on all known plugins.
@@ -132,6 +122,6 @@ protected:
   std::string name_;
   std::vector<boost::shared_ptr<PluginClass>> plugins_;
 };
-}
+}  // namespace vigir_pluginlib
 
 #endif

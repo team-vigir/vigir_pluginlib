@@ -2,8 +2,6 @@
 
 #include <vigir_pluginlib/type_class_traits.h>
 
-
-
 namespace vigir_pluginlib
 {
 Plugin::Plugin(const std::string& name, const std::string& type_class_package, const std::string& base_class_package, const std::string& base_class)
@@ -14,10 +12,7 @@ Plugin::Plugin(const std::string& name, const std::string& type_class_package, c
   description_.base_class = base_class;
 }
 
-Plugin::~Plugin()
-{
-  nh_.shutdown();
-}
+Plugin::~Plugin() { nh_.shutdown(); }
 
 bool Plugin::setup(ros::NodeHandle& nh, const vigir_generic_params::ParameterSet& /*params*/)
 {
@@ -36,15 +31,9 @@ const msgs::PluginDescription& Plugin::getDescription() const
   return description_;
 }
 
-const std::string& Plugin::getName() const
-{
-  return description_.name;
-}
+const std::string& Plugin::getName() const { return description_.name; }
 
-const std::string& Plugin::getTypeClassPackage() const
-{
-  return description_.type_class_package;
-}
+const std::string& Plugin::getTypeClassPackage() const { return description_.type_class_package; }
 
 const std::string& Plugin::getTypeClass() const
 {
@@ -56,15 +45,9 @@ const std::string& Plugin::getTypeClass() const
   return description_.type_class;
 }
 
-const std::string& Plugin::getBaseClassPackage() const
-{
-  return description_.base_class_package;
-}
+const std::string& Plugin::getBaseClassPackage() const { return description_.base_class_package; }
 
-const std::string& Plugin::getBaseClass() const
-{
-  return description_.base_class;
-}
+const std::string& Plugin::getBaseClass() const { return description_.base_class; }
 
 void Plugin::updateDescription(const msgs::PluginDescription& description)
 {
@@ -72,13 +55,7 @@ void Plugin::updateDescription(const msgs::PluginDescription& description)
   setParams(vigir_generic_params::ParameterSet(description_.params));
 }
 
-void Plugin::setNodehandle(const ros::NodeHandle& nh)
-{
-  nh_ = nh;
-}
+void Plugin::setNodehandle(const ros::NodeHandle& nh) { nh_ = nh; }
 
-void Plugin::setParams(const vigir_generic_params::ParameterSet& params)
-{
-  params_ = params;
-}
-} // namespace
+void Plugin::setParams(const vigir_generic_params::ParameterSet& params) { params_ = params; }
+}  // namespace vigir_pluginlib
