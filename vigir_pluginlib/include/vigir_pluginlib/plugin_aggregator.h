@@ -39,7 +39,7 @@
 
 namespace vigir_pluginlib
 {
-template <class PluginClass>
+template <typename PluginClass>
 class PluginAggregator
 {
 public:

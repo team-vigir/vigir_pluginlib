@@ -41,7 +41,7 @@
 
 namespace vigir_pluginlib
 {
-template <class T>
+template <typename T>
 class PluginLoader
   : public pluginlib::ClassLoader<T>
   , public PluginLoaderBase
