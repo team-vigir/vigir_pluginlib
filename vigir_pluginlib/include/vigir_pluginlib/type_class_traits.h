@@ -31,20 +31,18 @@
 
 #include <ros/ros.h>
 
-
+#include <boost/core/demangle.hpp>
 
 namespace vigir_pluginlib
 {
-std::string demangle(const char* name);
-
 struct TypeClass
 {
-  template<typename T>
-  static inline std::string get(T* t = nullptr)
+  template <typename T>
+  static constexpr std::string get(T* t = nullptr)
   {
-    return demangle(t ? typeid(*t).name() : typeid(T).name());
+    return boost::core::demangle(t ? typeid(*t).name() : typeid(T).name());
   }
 };
-}
+}  // namespace vigir_pluginlib
 
 #endif
