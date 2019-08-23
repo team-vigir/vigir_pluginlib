@@ -109,12 +109,12 @@ public:
     return result;
   }
 
-  void call(std::function<void()> fun)
+  void call(std::function<void(boost::shared_ptr<PluginClass>)> fun) const
   {
     for (const boost::shared_ptr<PluginClass> plugin : plugins_)
     {
       if (plugin)
-        fun(plugin.get());
+        fun(plugin);
     }
   }
 
