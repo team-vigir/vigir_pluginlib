@@ -65,7 +65,7 @@ public:
    * @brief Loads parameters from parameter set and rosparam server.
    * This method will be automatically called before Plugin::initialize(...). And can be called each time parameters are
    * changed. Use this method for dynamic parameters.
-   * @param params active global parameter set (!= plugin's own parameter set) taken from ParameterManager
+   * @param params active global parameter set (not equal to plugin's own local parameter set) taken from ParameterManager
    * @return true, if loading parameters was successful
    */
   virtual bool loadParams(const vigir_generic_params::ParameterSet& params = vigir_generic_params::ParameterSet()) { return true; }
@@ -73,7 +73,7 @@ public:
   /**
    * @brief Initialization of plugin specific features. This method is intented to be called only
    * during initialization of the plugin. It is not supposed to be called again during life cycle.
-   * @param params active global parameter set (!= plugin's own parameter set) taken from ParameterManager
+   * @param params active global parameter set (not equal to plugin's own local parameter set) taken from ParameterManager
    * @return true when initialization was successful
    */
   virtual bool initialize(const vigir_generic_params::ParameterSet& params = vigir_generic_params::ParameterSet()) { return true; }
@@ -81,7 +81,7 @@ public:
   /**
    * @brief Called after initialization of this and other plugins has been completed.
    * At this point other plugins can be used safely.
-   * @param params active global parameter set (!= plugin's own parameter set) taken from ParameterManager
+   * @param params active global parameter set (not equal to plugin's own local parameter set) taken from ParameterManager
    * @return true, if post initialization was successful
    */
   virtual bool postInitialize(const vigir_generic_params::ParameterSet& params = vigir_generic_params::ParameterSet()) { return true; }
@@ -108,7 +108,7 @@ public:
   virtual bool isUnique() const { return true; }
 
   /**
-   * @brief Updates parameter from plugin's dedicated parameter set
+   * @brief Updates parameter of plugin's local parameter set
    * @param key key of parameter
    * @param val new value for parametr
    * @param default_val default value
@@ -145,7 +145,7 @@ protected:
   }
 
   /**
-   * @brief Retrieves parameter from plugin's dedicated parameter set
+   * @brief Retrieves parameter from plugin's local parameter set
    * @param key key of parameter
    * @param p [out] return variable for parameter
    * @param default_val default value
@@ -159,7 +159,7 @@ protected:
   }
 
   /**
-   * @brief Retrieves parameter from plugin's dedicated parameter set
+   * @brief Retrieves parameter from plugin's local parameter set
    * @param key key of parameter
    * @param p [out] return variable for parameter
    * @param default_val default value
@@ -173,7 +173,7 @@ protected:
   }
 
   /**
-   * @brief Retrieves parameter from plugin's dedicated parameter set
+   * @brief Retrieves parameter from plugin's local parameter set
    * @param key key of parameter
    * @param default_val default value
    * @param ignore_warnings (default = false) When set to true, no warnings will be printed if param is not available
