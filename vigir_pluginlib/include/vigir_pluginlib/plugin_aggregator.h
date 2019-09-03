@@ -80,19 +80,19 @@ public:
   }
 
   /**
-   * @brief Returns a list of all known plugins of type T.
+   * @brief Returns a list of all registered plugins of type T.
    * @return List of all known plugins of type T
    */
   std::vector<boost::shared_ptr<PluginClass>> getPlugins() const { return plugins_; }
 
   /**
-   * @brief Returns the number of known plugins of type T.
+   * @brief Returns the number of registered plugins of type T.
    * @return Number of known plugins of type T
    */
   size_t size() const { return plugins_.size(); }
 
   /**
-   * @brief Loads parameters on all known plugins.
+   * @brief Loads parameters on all registered plugins.
    * @param params Parameter set to load
    * @return false when error occurs, otherwise true
    */
