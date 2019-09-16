@@ -185,6 +185,11 @@ protected:
     return params_.param(key, default_val, ignore_warnings);
   }
 
+  inline vigir_generic_params::ParameterSet getSubset(const std::string& key) const
+  {
+    return params_.getSubset(key);
+  }
+
   ros::NodeHandle nh_;
 
 private:
