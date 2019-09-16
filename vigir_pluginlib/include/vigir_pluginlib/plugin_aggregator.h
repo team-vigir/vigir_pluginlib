@@ -61,13 +61,18 @@ public:
   /**
    * @brief Collects all plugins from PluginManager matching the type T.
    */
-  virtual void loadPlugins()
+  virtual void loadPlugins(bool print_warning = true)
   {
     // get plugins
     PluginManager::getPlugins(plugins_);
 
     if (plugins_.empty())
-      ROS_WARN("[%s] loadPlugins: Couldn't find any plugin of type '%s'.", name_.c_str(), vigir_pluginlib::TypeClass::get<PluginClass>().c_str());
+    {
+      if (print_warning)
+        ROS_WARN("[%s] loadPlugins: Couldn't find any plugin of type '%s'.", name_.c_str(), vigir_pluginlib::TypeClass::get<PluginClass>().c_str());
+      else
+        ROS_INFO("[%s] No plugins loaded.", name_.c_str());
+    }
     else
     {
       ROS_INFO("[%s] Plugins loaded:", name_.c_str());
