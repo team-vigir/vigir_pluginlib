@@ -38,7 +38,7 @@ namespace vigir_pluginlib
 struct TypeClass
 {
   template <typename T>
-  static constexpr std::string get(T* t = nullptr)
+  static std::string get(T* t = nullptr)
   {
     return boost::core::demangle(t ? typeid(*t).name() : typeid(T).name());
   }
