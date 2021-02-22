@@ -114,6 +114,11 @@ public:
     return result;
   }
 
+  /**
+   * @brief Lambda function caller to generically call a specicif member function
+   * for all loaded plugins
+   * @param fun Functor to call
+   */
   void call(std::function<void(boost::shared_ptr<PluginClass>)> fun) const
   {
     for (const boost::shared_ptr<PluginClass> plugin : plugins_)
