@@ -53,6 +53,8 @@ public:
     : name_(name)
   {}
 
+  virtual ~PluginAggregator() = default;
+
   /**
    * @brief Clears internal collection of all plugins
    */
@@ -115,8 +117,9 @@ public:
   }
 
   /**
-   * @brief Lambda function caller to generically call a specicif member function
-   * for all loaded plugins
+   * @brief Lambda function caller to generically call a specific member function
+   * for all loaded plugins.
+   * Example: plugins_.call([](Plugin::Ptr p) { p->trigger(); })
    * @param fun Functor to call
    */
   void call(std::function<void(boost::shared_ptr<PluginClass>)> fun) const
