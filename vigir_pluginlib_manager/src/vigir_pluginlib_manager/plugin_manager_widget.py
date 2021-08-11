@@ -109,9 +109,9 @@ class PluginManagerWidget(QWidget):
         self.search_namespace()
 
     def shutdown_plugin(self):
-        print 'Shutting down ...'
-        self.plugin_states_update_sub.unregister()
-        print 'Done!'
+        print("Shutting down ...")
+        # self.plugin_states_update_sub.unregister()
+        print("Done!")
 
     def _open_context_menu(self, position):
         indexes = self.plugin_tree_view.selectedIndexes()
