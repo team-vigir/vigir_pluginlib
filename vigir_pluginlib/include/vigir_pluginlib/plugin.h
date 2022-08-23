@@ -73,6 +73,7 @@ public:
   /**
    * @brief Initialization of plugin specific features. This method is intented to be called only
    * during initialization of the plugin. It is not supposed to be called again during life cycle.
+   * This method will be automatically called once after Plugin::loadParams(...).
    * @param params active global parameter set (not equal to plugin's own local parameter set) taken from ParameterManager
    * @return true when initialization was successful
    */
