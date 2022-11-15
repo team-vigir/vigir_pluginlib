@@ -47,11 +47,11 @@
   <depend>vigir_pluginlib_msgs</depend>
   
   <exec_depend>rospy</exec_depend>
-  <exec_depend>rqt_gui</exec_depend>
-  <exec_depend>rqt_gui_py</exec_depend>
+  <!--exec_depend>rqt_gui</exec_depend-->
+  <!--exec_depend>rqt_gui_py</exec_depend-->
   <exec_depend>rqt_py_common</exec_depend>
   <exec_depend version_gte="0.2.19">python_qt_binding</exec_depend>
-  <exec_depend>qt_gui</exec_depend>
+  <!--exec_depend>qt_gui</exec_depend-->
 
 
   <!-- The export tag contains other, unspecified, tags -->
