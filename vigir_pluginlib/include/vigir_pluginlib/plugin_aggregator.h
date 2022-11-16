@@ -63,11 +63,12 @@ public:
   /**
    * @brief Collects all plugins from PluginManager matching the type T.
    */
-  virtual void loadPlugins(bool print_warning = true)
+  virtual bool loadPlugins(bool print_warning = true)
   {
     // get plugins
     PluginManager::getPlugins(plugins_);
 
+    // check result
     if (plugins_.empty())
     {
       if (print_warning)
@@ -84,6 +85,46 @@ public:
           ROS_INFO("    %s", plugin->getName().c_str());
       }
     }
+
+    return true;
+  }
+
+  virtual bool loadPlugins(const std::vector<std::string>& names, bool print_warning)
+  {
+    plugins_.clear();
+
+    // get plugins
+    for (const std::string& name : names)
+    {
+      boost::shared_ptr<PluginClass> plugin;
+      if (vigir_pluginlib::PluginManager::getPlugin(plugin, name))
+        plugins_.push_back(plugin);
+      else
+      {
+        ROS_WARN("[%s] loadPlugins: Couldn't find plugin named '%s' of type '%s'.", name_.c_str(), name.c_str(), vigir_pluginlib::TypeClass::get<PluginClass>().c_str());
+        return false;
+      }
+    }
+
+    // check result
+    if (plugins_.empty())
+    {
+      if (print_warning)
+        ROS_WARN("[%s] loadPlugins: Couldn't find any plugin of type '%s'.", name_.c_str(), vigir_pluginlib::TypeClass::get<PluginClass>().c_str());
+      else
+        ROS_INFO("[%s] No plugins loaded.", name_.c_str());
+    }
+    else
+    {
+      ROS_INFO("[%s] Plugins loaded:", name_.c_str());
+      for (const boost::shared_ptr<PluginClass> plugin : plugins_)
+      {
+        if (plugin)
+          ROS_INFO("    %s", plugin->getName().c_str());
+      }
+    }
+
+    return true;
   }
 
   /**
